@@ -1,7 +1,10 @@
 # 18240 Handin Tool
 A handin utility tool for 18240 assignments. Meant to streamline student
 workflow with respect to code submissions with the intent of removing Autolab
-from the flow entirely, as well as make the lives of the (best) TAs easier.
+from the flow entirely, as well as make the lives of the (best) TAs easier. Also
+includes some utility scripts that would be useful for the new workflow.
+
+Written in Python, intended for ver. 2.7.5.
 
 ## Usage
 *TODO*
@@ -25,35 +28,41 @@ code files.
 file exists.
 6. Student goes to gradescope and submits each file to a separate
 homework assignment: HW3 and HW3-code, for instance.
-7. After homework is graded, they go to gradescope to get their
-grades on the two portions of the homework. The HWX-code assignment
-contains the pretty pdf, which has been annotated with style or
-other comments. The HWX-code assignment has rubrics not only for
-style, but also for all of the functionality tests that have been
-graded.
+7. After homework is graded, they go to gradescope to get their grades on the
+two portions of the homework. The HWX-code assignment contains the pretty pdf,
+which has been annotated with style or other comments. The HWX-code assignment
+has rubrics not only for style, but also for all of the functionality tests that
+have been graded.
 
 Some potential features include:
 - Detect the student’s Andrew ID
 - Check that the current directory is in the student’s space (actually, that
 it isn’t in the class space and is a writeable directory)
 - Check that each required file exists.
-- Copy each required file into the handin directory in the course
-space
+- Copy each required file into the handin directory in the course space
 - Use `reportlab` to make a pretty pdf with each code file printed
 on a different page.
 - Test the file and report results:
-    - What happens here will vary depending on the type of
-    question. At the very least, it would check for proper
-    compilation. It could try using our testbench on the
-    student’s design. It might use a simple testbench, as
+    - We will need to find some workaround involving permissions. Students need
+      to be able to read the TA testbenches, but if they can then too much
+      information would be disclosed. Perhaps a `.svp` inside of the `handout`
+      directory is the way to go?
+    - What happens here will vary depending on the type of question. At the very
+    least, it would check for proper compilation. It could try using our
+    testbench on the student’s design. It might use a simple testbench, as
     opposed to a deeper grading testbench.
-    - It would be nice if all of the VCS garbage output
-    was captured and parsed without the student seeing it.
-    Ideally, the student would just get a report that
-    looks something like:
+    - It would be nice if all of the VCS garbage output was captured and parsed
+    without the student seeing it.  Ideally, the student would just get a report
+    that looks something like:
 ```
 Problem 3: Your file (hw6prob3.sv) does not compile.
 Problem 4: 3 of 4 tests passed
 Problem 7: File hw6prob7.timing was not found
 The file hw6_code.pdf was created. Make sure to submit this file to gradescope!
 ```
+
+Potential utility scripts that aren't used for students:
+- Parse a roster of Andrew IDs to create folders for their submissions for a
+  given homework.
+- Add the ability to automatically configure `fs` so student has R/W permissions
+- Also the ability to disable those permissions once the deadline passes
