@@ -12,3 +12,9 @@ COURSE_DIR = "/afs/ece.cmu.edu/class/ee240";
 HANDIN_DIR = COURSE_DIR + "/handin";
 # Directory where homework files will be
 HANDOUT_DIR = COURSE_DIR + "/handout";
+
+# Course staff directory (students do NOT have access to here!)
+STAFF_DIR = COURSE_DIR + "/STAFF";
+
+# Location of current student roster
+ROSTER = STAFF_DIR + "/roster_s19.txt";

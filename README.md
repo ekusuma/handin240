@@ -6,6 +6,10 @@ includes some utility scripts that would be useful for the new workflow.
 
 Written in Python, intended for ver. 2.7.5.
 
+## Todos
+- Convert Python scripts into executables
+- Refactor scripts into object-oriented, for ease of use
+
 ## Usage
 *TODO*
 
