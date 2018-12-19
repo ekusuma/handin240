@@ -7,11 +7,30 @@ includes some utility scripts that would be useful for the new workflow.
 Written in Python, intended for ver. 2.7.5.
 
 ## Todos
+- Error handling when necessary files do not exist
 - Convert Python scripts into executables
+- Create script to modify AFS permissions for each student directory
 - Refactor scripts into object-oriented, for ease of use
 
 ## Usage
-*TODO*
+### Handin directory creator
+**Requires a roster of students, by Andrew ID.** Name of this roster can be
+redefined in `env.py`. Students must be separated by newlines.
+
+To create a handin directory, simply run:
+```bash
+./create_student_dir hwNum
+```
+Where `hwNum` is the homework assignment to create a directory for, i.e.
+```bash
+./create_student_dir hw5
+```
+By default, the script looks for the student roster defined in `env.py`. To pass
+in a separate roster file, run the script with flag `-r` and pass in the path
+to the roster, i.e.
+```bash
+./create_student_dir -r /path/to/roster.txt hw5
+```
 
 ## Specification
 Student workflow should (roughly) be as follows:
