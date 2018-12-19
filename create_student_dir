@@ -12,13 +12,8 @@
 import optparse;
 import os;
 from env_test import *;
-
-# Function for error handling. Will return an exit code, but not actually cause
-# script to exit in case we want to do some cleanup (i.e. remove temporary
-# directories)
-def error(message, exitStatus=1):
-    print(message);
-    return exitStatus;
+# Uncomment this line when rolling out for production
+#from env import *;
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
@@ -35,7 +30,7 @@ def getArgs():
 # must be an array of student IDs.
 def createStudentDirs(basePath, ids):
     for student in ids:
-        os.mkdir(basePath + "/" + student);
+        os.mkdir(basePath + "/" + student.lower());
 
 def main():
     (options, args) = getArgs();
