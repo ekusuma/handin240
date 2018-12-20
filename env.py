@@ -5,6 +5,13 @@
 #
 # Edric Kusuma (ekusuma)
 
+# List of legal handler chars
+HANDLER_CHARS = [
+    "e",    # Exists
+    "c",    # Compiles
+    "t"     # Passes tests
+];
+
 # Main course directory in AFS space
 COURSE_DIR = "/afs/ece.cmu.edu/class/ee240";
 

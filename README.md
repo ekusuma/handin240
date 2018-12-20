@@ -49,6 +49,11 @@ files must be placed in the directory specified by `CFG_DIR` defined in
 Note that for `t` files, there must a corresponding `{fileName}\_TATB.sv` inside
 of the TATB staff folder (TODO: define this directory).
 
+It's worth noting that there is a hierarchy tot he handler chars. `c` will check
+for complation as well as existence. `t` will check for both compilation and
+existence. Thus if a file is to be tested, then there is no need to have lines
+with `e` and `c` before it.
+
 ## Specification
 Student workflow should (roughly) be as follows:
 1. Do homework involving "PDFed" answers and "Code" answers. Code answers will
