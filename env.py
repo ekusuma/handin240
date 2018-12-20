@@ -18,3 +18,6 @@ STAFF_DIR = COURSE_DIR + "/STAFF";
 
 # Location of current student roster
 ROSTER = STAFF_DIR + "/roster_s19.txt";
+
+# Location of homework cfg files
+CFG_DIR = STAFF_DIR + "/ekusuma/hw_configs";

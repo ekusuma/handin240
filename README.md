@@ -32,6 +32,23 @@ to the roster, i.e.
 ./create_student_dir -r /path/to/roster.txt hw5
 ```
 
+### Creating homework config files
+The handin script will read a `.cfg` file in order to figure out what files
+students need for the homework, as well as how they will be used. These `.cfg`
+files must be placed in the directory specified by `CFG_DIR` defined in
+`env.py`. These files will be formatted as follows:
+- Each file is to be separated by a newline
+- Arguments in a line are separated by a space
+- The beginning of each line is a single character that defines how the file
+  will be handled. These will be called *handler chars*.
+| Handler char | Purpose                | Usage                         |
+| -----------: | ---------------------- | ----------------------------- |
+| `e`          | File exists            | `e hw8prob1.sv`               |
+| `c`          | Can compile            | `c hw8prob1.sv [extra files]` |
+| `t`          | Test with TA testbench | `t hw8prob1.sv [extra files]  |
+Note that for `t` files, there must a corresponding `{fileName}\_TATB.sv` inside
+of the TATB staff folder (TODO: define this directory).
+
 ## Specification
 Student workflow should (roughly) be as follows:
 1. Do homework involving "PDFed" answers and "Code" answers. Code answers will
