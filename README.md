@@ -41,11 +41,13 @@ files must be placed in the directory specified by `CFG_DIR` defined in
 - Arguments in a line are separated by a space
 - The beginning of each line is a single character that defines how the file
   will be handled. These will be called *handler chars*.
+
 | Handler char | Purpose                | Usage                         |
 | -----------: | ---------------------- | ----------------------------- |
 | `e`          | File exists            | `e hw8prob1.sv`               |
 | `c`          | Can compile            | `c hw8prob1.sv [extra files]` |
 | `t`          | Test with TA testbench | `t hw8prob1.sv [extra files]  |
+
 Note that for `t` files, there must a corresponding `{fileName}\_TATB.sv` inside
 of the TATB staff folder (TODO: define this directory).
 
