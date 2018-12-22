@@ -11,6 +11,7 @@
 
 import optparse;
 import os;
+import subprocess;
 from env_test import *;
 # Uncomment this line when rolling out for production
 #from env import *;
@@ -26,17 +27,36 @@ def getArgs():
         parser.error("Must specify homework number as arg");
     return (options, args);
 
+# Sets AFS permissions such that the student may write to the directory
+# Admins have usual admin permissions, and other students may not access
+def setStudentPerms(studentID, path):
+    fsCmd = ["fs", "seta", "-dir", path, "-clear", "-acl"];
+    peoplePerms = [
+        "system:web-srv-users", "rl",
+        "ee240:ta", "all",
+        "ee240:staff", "all",
+        "ee240", "all",
+        "system:administrators", "all",
+        studentID, "write"
+    ];
+    fsCmd += peoplePerms;
+    subprocess.call(fsCmd);
+
 # Creates a directory for each student inside of the basePath directory. ids
 # must be an array of student IDs.
 def createStudentDirs(basePath, ids):
     for student in ids:
-        os.mkdir(basePath + "/" + student.lower());
+        path = basePath + "/" + student.lower();
+        if (not os.path.exists(path)):
+            os.mkdir(basePath + "/" + student.lower());
+        setStudentPerms(student, path);
 
 def main():
     (options, args) = getArgs();
     hwNum = args[0];
     handinDir = HANDIN_DIR + "/" + hwNum;
-    os.mkdir(handinDir);
+    if (not os.path.exists(handinDir)):
+        os.mkdir(handinDir);
 
     rosterFile = open(options.rosterPath, "r");
     studentIDs = rosterFile.read().split();
