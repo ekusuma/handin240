@@ -9,8 +9,9 @@ Written in Python, intended for ver. 2.7.5.
 ## Todos
 - Error handling when necessary files do not exist
 - Convert Python scripts into executables
-- Create script to modify AFS permissions for each student directory
+- ~Create script to modify AFS permissions for each student directory~
 - Refactor scripts into object-oriented, for ease of use
+- Define TATB directory and usage
 
 ## Usage
 ### Handin directory utilities
@@ -66,7 +67,7 @@ files must be placed in the directory specified by `CFG_DIR` defined in
 | `t`          | Test with TA testbench | `t hw8prob1.sv [extra files]` |
 
 Note that for `t` files, there must a corresponding `{fileName}_TATB.sv` inside
-of the TATB staff folder (TODO: define this directory).
+of the TATB staff folder (**TODO**: define this directory).
 
 It's worth noting that there is a hierarchy to the handler chars. `c` will check
 for complation as well as existence. `t` will check for both compilation and
