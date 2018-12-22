@@ -173,6 +173,17 @@ def doOperation(opString, personalOutput):
 
 def createErrLog(contents, path="."):
     fd = open(path + "/errors.log", "w");
+
+    # Remove formatting characters
+    contents = contents.replace(bcolors.HEADER, "");
+    contents = contents.replace(bcolors.OKBLUE, "");
+    contents = contents.replace(bcolors.OKGREEN, "");
+    contents = contents.replace(bcolors.WARNING, "");
+    contents = contents.replace(bcolors.FAIL, "");
+    contents = contents.replace(bcolors.ENDC, "");
+    contents = contents.replace(bcolors.BOLD, "");
+    contents = contents.replace(bcolors.UNDERLINE, "");
+
     fd.write(contents);
     fd.close();
 
@@ -184,7 +195,7 @@ def getOutputHeader(hwNum, studentID):
     return outputHeader;
 
 # Returns True on success, False on failure
-def doHandin(hwNum, studentID, filesToSubmit):
+def doHandin(hwNum, studentID, filesToSubmit, badFiles=None):
     # TODO: complete this function
     studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID;
 
@@ -197,7 +208,20 @@ def doHandin(hwNum, studentID, filesToSubmit):
 
     for fileName in filesToSubmit:
         path = "./" + fileName;
+        # Since these files passed the check, they should exist, but just in case
+        if (not os.path.exists(path)):
+            error("File " + fileName + " does not exist. File not copied.");
         shutil.copy(path, studentDir);
+    if (badFiles != None):
+        badFilesDir = studentDir + "/badFiles";
+        if (not os.path.exists(badFilesDir)):
+            os.mkdir(badFilesDir);
+        shutil.copy("./errors.log", badFilesDir);
+        for fileName in badFiles:
+            path = "./" + fileName;
+            if (not os.path.exists(path)):
+                continue;
+            shutil.copy(path, badFilesDir);
 
     return True;
 
@@ -208,12 +232,13 @@ def main():
     # Save relevant fields
     isForced = options.force;
     hwNum = args[0];
-    selfID = os.getlogin();     # Get student's Andrew ID
+    selfID = os.getlogin().lower();     # Get student's Andrew ID
 
     # Initialize variables
     personalOutput = getOutputHeader(hwNum, selfID);
     hasAnyErrors = False;
     filesToSubmit = [];
+    badFiles = [];
 
     # Parse config file and do relevant operations
     opArray = parseConfig(CFG_DIR + "/" + hwNum + ".cfg");
@@ -221,6 +246,7 @@ def main():
         (hasErrors, personalOutput) = doOperation(op, personalOutput);
         if (hasErrors):
             hasAnyErrors = True;
+            badFiles.append(op.split()[1]);
         else:
             # No errors, so must be a valid file
             filesToSubmit.append(op.split()[1]);
@@ -239,12 +265,12 @@ def main():
             print("If you wish to submit an incomplete homework, then run the " +
             "handin script again with the '-f' flag.");
         else:
-            print(warning + "you are attempting to submit a file with errors! " +
+            print(warning + "you are attempting to submit homework with errors! " +
                   "You will NOT receive any credit for files with errors.\n");
             print("If this is intentional on your part, type 'yes' and press Enter.");
             agreement = raw_input("I agree to hand in files with errors: ");
             if (agreement == "yes"):
-                handinSuccessful = doHandin(hwNum, selfID, filesToSubmit);
+                handinSuccessful = doHandin(hwNum, selfID, filesToSubmit, badFiles);
                 if (handinSuccessful):
                     print("\n" + handinCreated);
                 else:
