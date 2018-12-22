@@ -9,7 +9,7 @@ Written in Python, intended for ver. 2.7.5.
 ## Todos
 - Error handling when necessary files do not exist
 - Convert Python scripts into executables
-- ~Create script to modify AFS permissions for each student directory~
+- ~~Create script to modify AFS permissions for each student directory~~
 - Refactor scripts into object-oriented, for ease of use
 - Define TATB directory and usage
 
