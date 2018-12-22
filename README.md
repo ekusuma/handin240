@@ -38,6 +38,9 @@ students need for the homework, as well as how they will be used. These `.cfg`
 files must be placed in the directory specified by `CFG_DIR` defined in
 `env.py`. These files will be formatted as follows:
 - Each file is to be separated by a newline
+- Blank lines and comments (lines that begin with `#`) will be ignored
+    - At this time, only lines that **begin** with `#` will be treated as
+      comments
 - Arguments in a line are separated by a space
 - The beginning of each line is a single character that defines how the file
   will be handled. These will be called *handler chars*.

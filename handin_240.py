@@ -76,7 +76,11 @@ def parseConfig(configPath):
     if (not os.path.exists(configPath)):
         error("no such config file. Are you sure the hw number is correct?", fatal=True);
     configFile = open(configPath, "r");
-    opArray = configFile.read().split("\n");
+    opArray = configFile.read().strip().split("\n");
+    for (i, line) in enumerate(opArray):
+        # Remove line if empty or a comment
+        if ((len(line) == 0) or (line[0] == "#")):
+            opArray.pop(i);
     configFile.close();
     return opArray;
 
@@ -177,8 +181,6 @@ def main():
 
     opArray = parseConfig(CFG_DIR + "/" + hwNum + ".cfg");
     for op in opArray:
-        if (len(op) == 0):  # Sometimes we get an empty string
-            continue;
         (hasErrors, personalOutput) = doOperation(op, personalOutput);
         if (hasErrors):
             hasAnyErrors = True;
