@@ -13,7 +13,8 @@ Written in Python, intended for ver. 2.7.5.
 - Refactor scripts into object-oriented, for ease of use
 
 ## Usage
-### Handin directory creator
+### Handin directory utilities
+#### Handin creation
 **Requires a roster of students, by Andrew ID.** Name of this roster can be
 redefined in `env.py`. Students must be separated by newlines.
 
@@ -31,6 +32,19 @@ to the roster, i.e.
 ```bash
 ./create_student_dir -r /path/to/roster.txt hw5
 ```
+The creation script also sets AFS permissions using `fs`, such that admins and
+course staff may administrate each student handin directory, but only the
+student may have write access.
+#### Handin closing
+When the homework deadline has passed, course staff may replace each student's
+write permissions with read permissions (to prevent late submissions) by running
+the following:
+```bash
+./close_handin hwNum
+```
+Unfortunately this script must be run manually, as currently there is no
+reliable way to facilitate `cron` jobs on AFS. *Just make sure that someone runs
+this whenever a homework deadline is passed.*
 
 ### Creating homework config files
 The handin script will read a `.cfg` file in order to figure out what files

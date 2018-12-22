@@ -1,10 +1,12 @@
 #!/usr/bin/python
-# create_student_dir.py
+# close_handin.py
 #
-# Utility script to create student directories in the assignment's handin
-# folder. Requires a student roster file (filename and path detailed in env.py)
-# that has all student Andrew IDs, separated by a newline. Requires the user
-# running the script to be someone with access to the STAFF folder.
+# Utility script for closing student handin directories. Will take every student
+# directory in the handin dir, and remove write permissions for that student.
+# They will be replaced with read permissions.
+# Requires TA/staff permissions for this to work properly.
+#
+# This script should be run as soon as the hw deadline is passed
 
 import optparse;
 import os;
@@ -24,9 +26,8 @@ def getArgs():
         parser.error("Must specify homework number as arg");
     return (options, args);
 
-# Sets AFS permissions such that the student may write to the directory
-# Admins have usual admin permissions, and other students may not access
-def setStudentPerms(studentID, path):
+# Sets AFS permissions such that the student may no longer write to the directory
+def closeStudentPerms(studentID, path):
     fsCmd = ["fs", "seta", "-dir", path, "-clear", "-acl"];
     peoplePerms = [
         "system:web-srv-users", "rl",
@@ -34,31 +35,26 @@ def setStudentPerms(studentID, path):
         "ee240:staff", "all",
         "ee240", "all",
         "system:administrators", "all",
-        studentID, "write"
+        studentID, "read"
     ];
     fsCmd += peoplePerms;
     subprocess.call(fsCmd);
 
-# Creates a directory for each student inside of the basePath directory. ids
-# must be an array of student IDs.
-def createStudentDirs(basePath, ids):
-    for student in ids:
-        path = basePath + "/" + student.lower();
-        if (not os.path.exists(path)):
-            os.mkdir(basePath + "/" + student.lower());
-        setStudentPerms(student, path);
+def closeStudentDirs(basePath, dirs):
+    for studentDir in dirs:
+        path = basePath + "/" + studentDir;
+        closeStudentPerms(studentDir, path);
 
 def main():
     (options, args) = getArgs();
     hwNum = args[0];
     handinDir = HANDIN_DIR + "/" + hwNum;
     if (not os.path.exists(handinDir)):
-        os.mkdir(handinDir);
+        print(hwNum + " handin directory does not exist.");
+        exit(255);
+    fileList = os.listdir(handinDir);
 
-    rosterFile = open(options.rosterPath, "r");
-    studentIDs = rosterFile.read().split();
-    createStudentDirs(handinDir, studentIDs);
-    rosterFile.close();
+    closeStudentDirs(handinDir, fileList);
 
     return 0;
 
