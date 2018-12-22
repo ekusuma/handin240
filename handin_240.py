@@ -13,6 +13,7 @@
 #     files missing or unable to compile) they may run the script with the -f flag
 
 import os;
+import shutil;
 import optparse;
 from env_test import *;
 # Uncomment this line when rolling out for production
@@ -182,9 +183,23 @@ def getOutputHeader(hwNum, studentID):
     outputHeader += HEADER_LINE;
     return outputHeader;
 
-def doHandin():
+# Returns True on success, False on failure
+def doHandin(hwNum, studentID, filesToSubmit):
     # TODO: complete this function
-    return None;
+    studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID;
+
+    # Check if student exists in handin directory
+    if (not os.path.exists(studentDir)):
+        reason = "your handin directory was not found. Are you sure you are " + \
+                 "enrolled? Please contact course staff if the problem persists.";
+        error(reason);
+        return False;
+
+    for fileName in filesToSubmit:
+        path = "./" + fileName;
+        shutil.copy(path, studentDir);
+
+    return True;
 
 def main():
     exitStatus = 0;
@@ -195,9 +210,10 @@ def main():
     hwNum = args[0];
     selfID = os.getlogin();     # Get student's Andrew ID
 
-    # Initialize error log output and error flag
+    # Initialize variables
     personalOutput = getOutputHeader(hwNum, selfID);
     hasAnyErrors = False;
+    filesToSubmit = [];
 
     # Parse config file and do relevant operations
     opArray = parseConfig(CFG_DIR + "/" + hwNum + ".cfg");
@@ -205,6 +221,9 @@ def main():
         (hasErrors, personalOutput) = doOperation(op, personalOutput);
         if (hasErrors):
             hasAnyErrors = True;
+        else:
+            # No errors, so must be a valid file
+            filesToSubmit.append(op.split()[1]);
 
     # Result strings WITH COLORS \o/
     handinCreated = bcolors.OKGREEN + "Handin file created." + bcolors.ENDC;
@@ -225,13 +244,19 @@ def main():
             print("If this is intentional on your part, type 'yes' and press Enter.");
             agreement = raw_input("I agree to hand in files with errors: ");
             if (agreement == "yes"):
-                doHandin();
-                print("\n" + handinCreated);
+                handinSuccessful = doHandin(hwNum, selfID, filesToSubmit);
+                if (handinSuccessful):
+                    print("\n" + handinCreated);
+                else:
+                    print("\n" + handinNotCreated);
             else:
                 print("\n" + handinNotCreated);
     else:
-        doHandin();
-        print("\n" + handinCreated);
+        handinSuccessful = doHandin(hwNum, selfID, filesToSubmit);
+        if (handinSuccessful):
+            print("\n" + handinCreated);
+        else:
+            print("\n" + handinNotCreated);
 
     return exitStatus;
 
