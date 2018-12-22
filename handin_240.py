@@ -72,15 +72,30 @@ def getArgs():
         parser.error("Must specify homework number as arg");
     return (options, args);
 
+def checkValidOp(opString):
+    # For use if there is an error
+    badOp = "\nOffending instruction: '" + opString + "'";
+    opArr = opString.split();
+    if (len(opArr) < 2):
+        error("Not enough args in config file" + badOp, fatal=True);
+    handler = opArr[0];
+    if (not isValidHandlerChar(handler)):
+        error("Invalid handler char in config file" + badOp, fatal=True);
+
 def parseConfig(configPath):
     if (not os.path.exists(configPath)):
         error("no such config file. Are you sure the hw number is correct?", fatal=True);
     configFile = open(configPath, "r");
     opArray = configFile.read().strip().split("\n");
+
+    # Check validity of parsed operations
     for (i, line) in enumerate(opArray):
         # Remove line if empty or a comment
         if ((len(line) == 0) or (line[0] == "#")):
             opArray.pop(i);
+            continue;
+        checkValidOp(line);
+
     configFile.close();
     return opArray;
 
@@ -110,12 +125,6 @@ def checkExistence(opArr):
 def doOperation(opString, personalOutput):
     opArr = opString.split();
     handler = opArr[0];
-    if (len(opArr) < 2):
-        error("Not enough args in config file");
-        return (True, personalOutput);
-    if (not isValidHandlerChar(handler)):
-        error("Invalid handler char in config file");
-        return (True, personalOutput);
     mainFile = opArr[1];
     hasErrors = False;
 
@@ -166,32 +175,46 @@ def createErrLog(contents, path="."):
     fd.write(contents);
     fd.close();
 
+def getOutputHeader(hwNum, studentID):
+    outputHeader = HEADER_LINE;
+    outputHeader += writeHeaderLine("18240: " + hwNum);
+    outputHeader += writeHeaderLine("Error log for: " + studentID);
+    outputHeader += HEADER_LINE;
+    return outputHeader;
+
+def doHandin():
+    # TODO: complete this function
+    return None;
+
 def main():
     exitStatus = 0;
     (options, args) = getArgs();
+
+    # Save relevant fields
     isForced = options.force;
     hwNum = args[0];
-    selfID = os.getlogin();
+    selfID = os.getlogin();     # Get student's Andrew ID
 
-    personalOutput = HEADER_LINE;
-    personalOutput += writeHeaderLine("18240: " + hwNum);
-    personalOutput += writeHeaderLine("Error log for: " + selfID);
-    personalOutput += HEADER_LINE;
+    # Initialize error log output and error flag
+    personalOutput = getOutputHeader(hwNum, selfID);
     hasAnyErrors = False;
 
+    # Parse config file and do relevant operations
     opArray = parseConfig(CFG_DIR + "/" + hwNum + ".cfg");
     for op in opArray:
         (hasErrors, personalOutput) = doOperation(op, personalOutput);
         if (hasErrors):
             hasAnyErrors = True;
 
+    # Result strings WITH COLORS \o/
     handinCreated = bcolors.OKGREEN + "Handin file created." + bcolors.ENDC;
     handinNotCreated = bcolors.FAIL + "Handin file not created." + bcolors.ENDC;
+
+    # Check if handin had any errors
     if (hasAnyErrors):
         warning = bcolors.WARNING + "WARNING: " + bcolors.ENDC;
         print("\n" + warning + "errors detected! See errors.log for details.\n");
         createErrLog(personalOutput);
-        # TODO: create errors.log
         if (not isForced):
             print(handinNotCreated);
             print("If you wish to submit an incomplete homework, then run the " +
@@ -202,10 +225,13 @@ def main():
             print("If this is intentional on your part, type 'yes' and press Enter.");
             agreement = raw_input("I agree to hand in files with errors: ");
             if (agreement == "yes"):
-                # TODO: handin file creation function
+                doHandin();
                 print("\n" + handinCreated);
             else:
                 print("\n" + handinNotCreated);
+    else:
+        doHandin();
+        print("\n" + handinCreated);
 
     return exitStatus;
 
