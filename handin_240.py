@@ -34,6 +34,10 @@ ERR_NOEXIST     = 0;
 ERR_NOCOMPILE   = 1;
 ERR_FAILTEST    = 2;
 
+# A line of 80 *'s, to mark beginning and end of a header
+HEADER_LEN = 80;
+HEADER_LINE = "*" * HEADER_LEN + "\n";
+
 # Generic error handler. If fatal is true, then the error will cause the program
 # to terminate. Note that if cleanup is necessary in the case of an error (i.e.
 # deleting temporary directories), then fatal should be set to false.
@@ -47,6 +51,14 @@ def error(message, fatal=False):
 # Generic warning handler.
 def warning(message):
     print(bcolors.WARNING + "WARNING: " +bcolors.ENDC + message);
+
+def writeHeaderLine(header):
+    maxLen = HEADER_LEN - 2;    # Beginning and ending "*"
+    remaining = maxLen - len(header);
+    firstHalf = remaining // 2;
+    secondHalf = remaining - firstHalf;
+    headerLine = "*" + (" " * firstHalf) + header + (" " * secondHalf) + "*" + "\n";
+    return headerLine;
 
 # Returns a tuple of (options, args) parsed from the command line.
 # Raises an error (and exits) if no arg for hwNum is given.
@@ -88,6 +100,8 @@ def getOpError(mainFile, errType):
 def checkExistence(opArr):
     hasError = not os.path.exists("./" + opArr[1]);
     return hasError;
+
+# TODO: checkCompilation(), checkTATB()
 
 def doOperation(opString, personalOutput):
     opArr = opString.split();
@@ -143,14 +157,22 @@ def doOperation(opString, personalOutput):
 
     return (hasErrors, personalOutput);
 
+def createErrLog(contents, path="."):
+    fd = open(path + "/errors.log", "w");
+    fd.write(contents);
+    fd.close();
+
 def main():
     exitStatus = 0;
     (options, args) = getArgs();
     isForced = options.force;
     hwNum = args[0];
+    selfID = os.getlogin();
 
-    # TODO: initialize personalOutput string properly
-    personalOutput = "";
+    personalOutput = HEADER_LINE;
+    personalOutput += writeHeaderLine("18240: " + hwNum);
+    personalOutput += writeHeaderLine("Error log for: " + selfID);
+    personalOutput += HEADER_LINE;
     hasAnyErrors = False;
 
     opArray = parseConfig(CFG_DIR + "/" + hwNum + ".cfg");
@@ -166,6 +188,7 @@ def main():
     if (hasAnyErrors):
         warning = bcolors.WARNING + "WARNING: " + bcolors.ENDC;
         print("\n" + warning + "errors detected! See errors.log for details.\n");
+        createErrLog(personalOutput);
         # TODO: create errors.log
         if (not isForced):
             print(handinNotCreated);
