@@ -1,13 +1,15 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 import reportlab, os
 
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfgen import canvas 
+from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 
 from contextlib import contextmanager
+
+from env import *
 
 #Open my file, still using the "with" context manager goodness, but
 # able to detect if the file isn't found (or other errors)
@@ -26,19 +28,19 @@ def opened_with_error(filename, mode='r'):
 
 class HW_Code_Maker:
     """ Make the HWX_code.pdf file for turnin on Gradescope.
-    
+
     This class encapsulates the functionality to make the HWX_code.pdf
     file.  Such a file is a single PDF with each problem's file(s)
     pretty-printed.  Many problems do not require code, and so nothing
     will be included in this PDF file for those problems.  Some problems
-    have a single file and a few have multiple files.  
-    
-    The resulting PDF will have pages for each file, in order of the 
+    have a single file and a few have multiple files.
+
+    The resulting PDF will have pages for each file, in order of the
     problem.
-    
+
     To use, initialize the object with a homework dictionary describing
     the problems in that homework assignment.  Then, call the make_code
-    method.  
+    method.
     """
 
     LINE_SPACING = 10  # points
@@ -46,10 +48,10 @@ class HW_Code_Maker:
     LEFT_MARGIN  = .5 * inch # points
     BOTTOM_MARGIN = .5 * inch # points
     BOTTOM_OF_PAGE = 792 - BOTTOM_MARGIN
-    
-    def __init__(self, **kwargs): 
+
+    def __init__(self, **kwargs):
         """ Initialize with a dictionary describing the HW problems.
-        
+
         Keyword Arguments: (both are required)
         number : a string used as the homework number.  Typically 0-A
         problems : an ordered list of problem description dictionaries.
@@ -60,45 +62,45 @@ class HW_Code_Maker:
         self.line_number = 1
         self.init_xy()
         self.canvas = None
-        
+
     def init_xy(self):
         """ Set the x and y attributes to be the top of the page. """
         self.x = HW_Code_Maker.LEFT_MARGIN
         self.y = HW_Code_Maker.TOP_MARGIN
-      
+
     def make_code(self):
         """ Make the PDF file with all homework code files printed. """
         filename = 'hw{}_code.pdf'.format(self.hw_number)
-        self.canvas = canvas.Canvas(filename, 
-                                    bottomup=0, 
+        self.canvas = canvas.Canvas(filename,
+                                    bottomup=0,
                                     pagesize=reportlab.lib.pagesizes.letter)
         sFont = TTFont('SourceCodePro', 'SourceCodePro-Regular.ttf')
         pdfmetrics.registerFont(sFont)
         self.canvas.setFont('SourceCodePro', 10)
-  
+
         for problem in self.problems:
             if problem['files']:
                 for filename in problem['files']:
                     self.page_number = 1
                     self.print_file(filename, problem)
-        self.canvas.save()  
+        self.canvas.save()
 
     def draw_text_object(self, a_string, color_style=None):
         """ Draw a string onto the PDF page at the current position.
-        
+
         Arguments:
         a_string : which will be printed
         color_style : one of 'None', 'Header', 'Warning'
                       Indicates the string should be black, green or red.
-        
+
         Returns: Nothing
-                    
+
         Note: The y attribute is updated such that the next string to be
               printed will be on a following line.
         """
         text_object = self.canvas.beginText()
         text_object.setTextOrigin(self.x, self.y)
-        text_object.setFont('SourceCodePro', 10)    
+        text_object.setFont('SourceCodePro', 10)
         if color_style == 'Header':
             text_object.setFillColor(colors.green)
         elif color_style == 'Warning':
@@ -108,24 +110,24 @@ class HW_Code_Maker:
         text_object.textLine(text=a_string)
         self.canvas.drawText(text_object)
         self.y += HW_Code_Maker.LINE_SPACING
-    
+
     def draw_header(self, a_filename, prob_dict):
-        """ Draw the header at the top of each page. 
-        
+        """ Draw the header at the top of each page.
+
         The header is one or two lines at the top of each page in the PDF.
         Printed in Green, the header contains information about the problem,
         point values, drill status and filename.
         If the file has taken more than one page, the following headers
         will include a page number.
-        
+
         Arguments:
         a_filename : the filename of the file being printed.  Note that this
                      is necessary outside of the prob_dict, as there could
-                     be multiple files in the problem and we want to know 
+                     be multiple files in the problem and we want to know
                      which is currently printing.
         prob_dict : the dictionary describing the problem.  Full documentation
                     of this dictionary is in the print_file method.
-                    
+
         Returns: Nothing
         """
         self.init_xy()
@@ -148,38 +150,38 @@ class HW_Code_Maker:
             self.draw_text_object(to_print, 'Header')
         self.y += HW_Code_Maker.LINE_SPACING # include a blank line
         self.page_number += 1
-        
-    
+
+
     def print_file(self, a_filename, prob_dict):
         """ Print a single file into the PDF on one or more pages.
-        
+
         Each file is 'pretty-printed' in a fixed-width font, with line numbers
         added at the left side.  Note that the line numbers are assumed to
         never be greater than two digits.
-        
+
         As each line is printed, it is checked for two errors (currently).
         If the line has one or more errors, then it will be printed in Red:
-        1) Are there any tab characters on the line.  If so, the tabs are 
-           replaced by double spaces and an error message is printed after 
+        1) Are there any tab characters on the line.  If so, the tabs are
+           replaced by double spaces and an error message is printed after
            the line.
         2) Is the line (with tabs replaced) longer than 80 characters?  If
            so, the first 77 characters of the line are printed, followed
            by three periods ('...').  An error message is then printed which
            specifies how many characters are in the full line.
         Note: a single line could have both errors.
-           
+
         If the file does not exist, then a red error message is printed
         which states so.
-        
+
         Arguments:
         a_filename : the filename of the file being printed.  Note that this
                      is necessary outside of the prob_dict, as there could
-                     be multiple files in the problem and we want to know 
+                     be multiple files in the problem and we want to know
                      which is currently printing.
         prob_dict : a dictionary describing the current homework problem.
-        
+
         Returns : Nothing
-        
+
         The dictionary contains the following required keys:
         number : A string with the number of the homework assignment.
         drill : A boolean.  True if this problem is a drill problem.
@@ -193,14 +195,14 @@ class HW_Code_Maker:
         """
         self.line_number = 1
         self.draw_header(a_filename, prob_dict)
-        
+
         with opened_with_error(a_filename) as (f_in, err):
             if err:
                 line = 'File {} was not found'.format(a_filename)
                 self.draw_text_object(line, color_style='Warning')
             else:
                 for line in f_in:
-                    if self.y > HW_Code_Maker.BOTTOM_OF_PAGE:  
+                    if self.y > HW_Code_Maker.BOTTOM_OF_PAGE:
                         self.draw_header(a_filename, prob_dict)
                     contains_tabs = False
                     color_style = 'None'
@@ -218,14 +220,14 @@ class HW_Code_Maker:
                     else:
                         to_print = '{:3d} {}'.format(self.line_number, line)
                         self.draw_text_object(to_print, color_style)
-    
+
                     if contains_tabs:
-                        self.draw_text_object('Line contains tabs' + 
-                               ' (each tab replaced by 2 spaces in this print)', 
+                        self.draw_text_object('Line contains tabs' +
+                               ' (each tab replaced by 2 spaces in this print)',
                                color_style)
                     self.line_number += 1
         self.canvas.showPage()
-        
+
 def main():
     prob1  = {'number' :  '1', 'drill' : True, 'points' : 3, 'files' : None}
     prob2  = {'number' :  '2', 'drill' : True, 'points' : 1, 'files' : None}
@@ -233,26 +235,26 @@ def main():
     prob4  = {'number' :  '4', 'drill' : True, 'points' : 2, 'files' : None}
     prob5  = {'number' :  '5', 'drill' : True, 'points' : 3, 'files' : None}
     prob6  = {'number' :  '6', 'drill' : True, 'points' : 4, 'files' : None}
-    prob7  = {'number' :  '7', 'drill' : True, 'points' : 4, 
+    prob7  = {'number' :  '7', 'drill' : True, 'points' : 4,
               'files' : ['hw1prob7.sv']}
     prob8  = {'number' :  '8', 'drill' : True, 'points' : 4, 'files' : None}
-    prob9  = {'number' :  '9', 'drill' : True, 'points' : 4, 
+    prob9  = {'number' :  '9', 'drill' : True, 'points' : 4,
               'files' : ['hw1prob9.sv']}
-    prob10 = {'number' : '10', 'drill' : True, 'points' : 6, 
+    prob10 = {'number' : '10', 'drill' : True, 'points' : 6,
               'files' : ['hw1prob10.sv']}
     prob11 = {'number' : '11', 'drill' : False, 'points' : 6, 'files' : None}
     prob12 = {'number' : '12', 'drill' : False, 'points' : 4, 'files' : None}
     prob13 = {'number' : '13', 'drill' : False, 'points' : 6, 'files' : None}
-    prob14 = {'number' : '14', 'drill' : False, 'points' : 6, 
+    prob14 = {'number' : '14', 'drill' : False, 'points' : 6,
               'files' : ['hw1prob14.sv']}
-    prob15 = {'number' : '15', 'drill' : False, 'points' : 10, 
+    prob15 = {'number' : '15', 'drill' : False, 'points' : 10,
               'files' : ['hw1prob15.sv', 'hw1prob15_sim.txt']}
-    hw_dict = {'number' : '1', 
-               'problems' : [prob1, prob2, prob3, prob4, prob5, prob6, prob7, 
-                             prob8, prob9, prob10, prob11, prob12, prob13, 
+    hw_dict = {'number' : '1',
+               'problems' : [prob1, prob2, prob3, prob4, prob5, prob6, prob7,
+                             prob8, prob9, prob10, prob11, prob12, prob13,
                              prob14, prob15]}
     maker = HW_Code_Maker(**hw_dict)
     maker.make_code()
-    
+
 if __name__ == '__main__':
   main()
