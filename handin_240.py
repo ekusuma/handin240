@@ -15,9 +15,11 @@
 import os;
 import shutil;
 import optparse;
+
 from env_test import *;
 # Uncomment this line when rolling out for production
 #from env import *;
+import hw_code_maker;
 
 ###################### Some cool output formatting stuff #######################
 class bcolors:
@@ -88,17 +90,23 @@ def parseConfig(configPath):
         error("no such config file. Are you sure the hw number is correct?", fatal=True);
     configFile = open(configPath, "r");
     opArray = configFile.read().strip().split("\n");
+    result = [];
+    badLine = False;
 
     # Check validity of parsed operations
     for (i, line) in enumerate(opArray):
         # Remove line if empty or a comment
-        if ((len(line) == 0) or (line[0] == "#")):
-            opArray.pop(i);
+        if ((badLine) or (len(line) == 0) or (line[0] == "#")):
+            continue;
+        if (line == "rl_config"):       # Skip RL's config lines
+            badLine = True;
             continue;
         checkValidOp(line);
+        # Only append to result array if everything checks out
+        result.append(line);
 
     configFile.close();
-    return opArray;
+    return result;
 
 def isValidHandlerChar(handler):
     if ((len(handler) != 1) or (handler not in HANDLER_CHARS)):
@@ -168,6 +176,8 @@ def doOperation(opString, personalOutput):
             print(output);
             personalOutput = personalOutput + output + "\n";
             return (hasErrors, personalOutput);
+        else:
+            print(mainFile + ": file exists, good");
 
     return (hasErrors, personalOutput);
 
@@ -232,7 +242,9 @@ def main():
     # Save relevant fields
     isForced = options.force;
     hwNum = args[0];
-    selfID = os.getlogin().lower();     # Get student's Andrew ID
+    #selfID = os.getlogin().lower();     # Get student's Andrew ID
+    # TODO: delete this line for production
+    selfID = "ekusuma";
 
     # Initialize variables
     personalOutput = getOutputHeader(hwNum, selfID);
@@ -252,16 +264,19 @@ def main():
             filesToSubmit.append(op.split()[1]);
 
     # Result strings WITH COLORS \o/
-    handinCreated = bcolors.OKGREEN + "Handin file created." + bcolors.ENDC;
-    handinNotCreated = bcolors.FAIL + "Handin file not created." + bcolors.ENDC;
+    handinCreated = bcolors.OKGREEN + "Handin complete." + bcolors.ENDC;
+    handinNotCreated = bcolors.FAIL + "Handin not complete." + bcolors.ENDC;
 
+    attemptHandin = True;
     # Check if handin had any errors
+    if (len(badFiles) < 1):
+        badFiles = None;
     if (hasAnyErrors):
         warning = bcolors.WARNING + "WARNING: " + bcolors.ENDC;
         print("\n" + warning + "errors detected! See errors.log for details.\n");
         createErrLog(personalOutput);
         if (not isForced):
-            print(handinNotCreated);
+            attemptHandin = False;
             print("If you wish to submit an incomplete homework, then run the " +
             "handin script again with the '-f' flag.");
         else:
@@ -269,20 +284,22 @@ def main():
                   "You will NOT receive any credit for files with errors.\n");
             print("If this is intentional on your part, type 'yes' and press Enter.");
             agreement = raw_input("I agree to hand in files with errors: ");
-            if (agreement == "yes"):
-                handinSuccessful = doHandin(hwNum, selfID, filesToSubmit, badFiles);
-                if (handinSuccessful):
-                    print("\n" + handinCreated);
-                else:
-                    print("\n" + handinNotCreated);
-            else:
-                print("\n" + handinNotCreated);
-    else:
-        handinSuccessful = doHandin(hwNum, selfID, filesToSubmit);
+            if (agreement != "yes"):
+                attemptHandin = False;
+
+    if (attemptHandin):
+        handinSuccessful = doHandin(hwNum, selfID, filesToSubmit, badFiles);
         if (handinSuccessful):
             print("\n" + handinCreated);
         else:
             print("\n" + handinNotCreated);
+        # Create output PDF
+        hw_code_maker.main(hwNum, selfID);
+        print("\nCode printout created as " + hwNum + "_code.pdf");
+        print(bcolors.WARNING + "Please don't forget to submit this PDF to Gradescope!"
+                + bcolors.ENDC);
+    else:
+        print("\n" + handinNotCreated);
 
     return exitStatus;
 

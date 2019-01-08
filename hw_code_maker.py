@@ -61,6 +61,7 @@ class HW_Code_Maker:
         """
         self.hw_number = kwargs['number']
         self.problems  = kwargs['problems']
+        self.student   = kwargs['student']
         self.line_number = 1
         self.init_xy()
         self.canvas = None
@@ -144,6 +145,8 @@ class HW_Code_Maker:
                 to_print = to_print + ' Drill problem'
             self.draw_text_object(to_print, 'Header')
             to_print = 'Filename: {}'.format(a_filename)
+            self.draw_text_object(to_print, 'Header')
+            to_print = '{}'.format(self.student)
             self.draw_text_object(to_print, 'Header')
         else:
             self.canvas.showPage()
@@ -232,31 +235,50 @@ class HW_Code_Maker:
                     self.line_number += 1
         self.canvas.showPage()
 
-def main():
-    prob1  = {'number' :  '1', 'drill' : True, 'points' : 3, 'files' : None}
-    prob2  = {'number' :  '2', 'drill' : True, 'points' : 1, 'files' : None}
-    prob3  = {'number' :  '3', 'drill' : True, 'points' : 1, 'files' : None}
-    prob4  = {'number' :  '4', 'drill' : True, 'points' : 2, 'files' : None}
-    prob5  = {'number' :  '5', 'drill' : True, 'points' : 3, 'files' : None}
-    prob6  = {'number' :  '6', 'drill' : True, 'points' : 4, 'files' : None}
-    prob7  = {'number' :  '7', 'drill' : True, 'points' : 4,
-              'files' : ['hw1prob7.sv']}
-    prob8  = {'number' :  '8', 'drill' : True, 'points' : 4, 'files' : None}
-    prob9  = {'number' :  '9', 'drill' : True, 'points' : 4,
-              'files' : ['hw1prob9.sv']}
-    prob10 = {'number' : '10', 'drill' : True, 'points' : 6,
-              'files' : ['hw1prob10.sv']}
-    prob11 = {'number' : '11', 'drill' : False, 'points' : 6, 'files' : None}
-    prob12 = {'number' : '12', 'drill' : False, 'points' : 4, 'files' : None}
-    prob13 = {'number' : '13', 'drill' : False, 'points' : 6, 'files' : None}
-    prob14 = {'number' : '14', 'drill' : False, 'points' : 6,
-              'files' : ['hw1prob14.sv']}
-    prob15 = {'number' : '15', 'drill' : False, 'points' : 10,
-              'files' : ['hw1prob15.sv', 'hw1prob15_sim.txt']}
-    hw_dict = {'number' : '1',
-               'problems' : [prob1, prob2, prob3, prob4, prob5, prob6, prob7,
-                             prob8, prob9, prob10, prob11, prob12, prob13,
-                             prob14, prob15]}
+def parseConfig(cfgPath):
+    configFile = open(cfgPath, "r")
+    lineArray = configFile.read().strip().split("\n")
+    probArr = []
+    probDict = dict()
+    startParsing = False
+
+    for (i, line) in enumerate(lineArray):
+        if (line == "rl_config"):       # Skip until RL's config lines
+            startParsing = True
+            continue
+        if (startParsing):
+            if ((len(line) == 0) or (line[0] == "#")):
+                continue
+
+            args = line.split()
+            keyword = args[0].lower()
+            if (keyword == "endproblem"):
+                probArr.append(probDict)
+                continue
+            if (keyword == "problem"):
+                probDict = dict()       # New dict to create
+                probDict["number"] = args[1]
+            elif (keyword == "drill"):
+                probDict["drill"] = True if (args[1].lower()=="true") else False
+            elif (keyword == "points"):
+                probDict["points"] = int(args[1])
+            elif (keyword == "files"):
+                if (args[1].lower() == "none"):
+                    probDict["files"] = None
+                else:
+                    probDict["files"] = args[1:]
+
+    # Sort by problem number
+    probArr = sorted(probArr, key=lambda prob: prob["number"])
+    return probArr
+
+def main(hwNum="hw1", student="ekusuma"):
+    cfgPath = CFG_DIR + "/" + hwNum + ".cfg"
+    probArr = parseConfig(cfgPath)
+
+    hw_dict = {'number' : hwNum.replace("hw", ""), 'problems' : probArr,
+               'student' : student}
+
     maker = HW_Code_Maker(**hw_dict)
     maker.make_code()
 
