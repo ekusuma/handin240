@@ -15,10 +15,8 @@ from env import *;
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
-    usage = "usage: %prog [-r] hwNum";
+    usage = "usage: %prog hwNum";
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-r", action="store", type="string", dest="rosterPath",
-                      default=ROSTER, help="path to student roster file");
     (options, args) = parser.parse_args();
     if (len(args) != 1):
         parser.error("Must specify homework number as arg");
@@ -46,7 +44,9 @@ def closeStudentDirs(basePath, dirs):
 def main():
     (options, args) = getArgs();
     hwNum = args[0];
+
     handinDir = HANDIN_DIR + "/" + hwNum;
+    print("Closing handin directories in " + handinDir);
     if (not os.path.exists(handinDir)):
         print(hwNum + " handin directory does not exist.");
         exit(255);
@@ -54,6 +54,7 @@ def main():
 
     closeStudentDirs(handinDir, fileList);
 
+    print("Handin directories closed.");
     return 0;
 
 exit(main());

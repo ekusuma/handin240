@@ -11,12 +11,16 @@ import os;
 import subprocess;
 from env import *;
 
+isVerbose = False;
+
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
-    usage = "usage: %prog [-r] hwNum";
+    usage = "usage: %prog [-rv] hwNum";
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-r", action="store", type="string", dest="rosterPath",
                       default=ROSTER, help="path to student roster file");
+    parser.add_option("-v", action="store_true", dest="isVerbose",
+                      default=False, help="verbose script output");
     (options, args) = parser.parse_args();
     if (len(args) != 1):
         parser.error("Must specify homework number as arg");
@@ -44,20 +48,32 @@ def createStudentDirs(basePath, ids):
         path = basePath + "/" + student.lower();
         if (not os.path.exists(path)):
             os.mkdir(basePath + "/" + student.lower());
+        elif (isVerbose):
+            print("Handin dir already exists for " + student.lower() +
+                    ", skipping");
         setStudentPerms(student, path);
 
 def main():
     (options, args) = getArgs();
     hwNum = args[0];
+    global isVerbose;
+    isVerbose = options.isVerbose;
+
     handinDir = HANDIN_DIR + "/" + hwNum;
+    print("Creating handin directories for " + hwNum + " in " + handinDir);
     if (not os.path.exists(handinDir)):
         os.mkdir(handinDir);
+    elif (isVerbose):
+        print("Path exists for " + handinDir + ", skipping");
 
+    if (isVerbose):
+        print("Using roster file in " + options.rosterPath + "\n");
     rosterFile = open(options.rosterPath, "r");
     studentIDs = rosterFile.read().split();
     createStudentDirs(handinDir, studentIDs);
     rosterFile.close();
 
+    print("Handin directories created.");
     return 0;
 
 exit(main());
