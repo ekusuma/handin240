@@ -268,7 +268,7 @@ def parseConfig(cfgPath):
                     probDict["files"] = args[1:]
 
     # Sort by problem number
-    probArr = sorted(probArr, key=lambda prob: prob["number"])
+    probArr = sorted(probArr, key=lambda prob: int(prob["number"]))
     return probArr
 
 def main(hwNum="hw1", student="ekusuma"):
