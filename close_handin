@@ -11,9 +11,7 @@
 import optparse;
 import os;
 import subprocess;
-from env_test import *;
-# Uncomment this line when rolling out for production
-#from env import *;
+from env import *;
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():

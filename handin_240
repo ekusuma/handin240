@@ -16,9 +16,7 @@ import os;
 import shutil;
 import optparse;
 
-from env_test import *;
-# Uncomment this line when rolling out for production
-#from env import *;
+from env import *;
 import hw_code_maker;
 
 ###################### Some cool output formatting stuff #######################

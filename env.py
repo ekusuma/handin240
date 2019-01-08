@@ -13,7 +13,9 @@ HANDLER_CHARS = [
 ];
 
 # Main course directory in AFS space
-COURSE_DIR = "/afs/ece.cmu.edu/class/ee240";
+#COURSE_DIR = "/afs/ece.cmu.edu/class/ee240";
+# Directory for test use
+COURSE_DIR = "/afs/ece.cmu.edu/class/ee240/STAFF/ekusuma/240handin/course";
 
 # Directory where student submissions should be entered
 HANDIN_DIR = COURSE_DIR + "/handin";

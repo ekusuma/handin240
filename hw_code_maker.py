@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python
 import reportlab, os
 
 from reportlab.pdfbase import pdfmetrics
@@ -10,8 +10,7 @@ import reportlab.rl_config
 
 from contextlib import contextmanager
 
-# Remember to remove _test suffix for production
-from env_test import *
+from env import *
 
 #Open my file, still using the "with" context manager goodness, but
 # able to detect if the file isn't found (or other errors)
