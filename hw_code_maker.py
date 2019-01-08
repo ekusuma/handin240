@@ -6,10 +6,12 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+import reportlab.rl_config
 
 from contextlib import contextmanager
 
-from env import *
+# Remember to remove _test suffix for production
+from env_test import *
 
 #Open my file, still using the "with" context manager goodness, but
 # able to detect if the file isn't found (or other errors)
@@ -74,6 +76,8 @@ class HW_Code_Maker:
         self.canvas = canvas.Canvas(filename,
                                     bottomup=0,
                                     pagesize=reportlab.lib.pagesizes.letter)
+        # Need to add to the searchpath, so we can use a font that we specify
+        reportlab.rl_config.TTFSearchPath.append(FONT_DIR)
         sFont = TTFont('SourceCodePro', 'SourceCodePro-Regular.ttf')
         pdfmetrics.registerFont(sFont)
         self.canvas.setFont('SourceCodePro', 10)

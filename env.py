@@ -28,3 +28,6 @@ ROSTER = STAFF_DIR + "/roster_s19.txt";
 
 # Location of homework cfg files
 CFG_DIR = STAFF_DIR + "/ekusuma/hw_configs";
+
+# Location of font files for ReportLab
+FONT_DIR = STAFF_DIR + "/ekusuma/rl_fonts";
