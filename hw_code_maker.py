@@ -145,8 +145,10 @@ class HW_Code_Maker:
             self.draw_text_object(to_print, 'Header')
             to_print = 'Filename: {}'.format(a_filename)
             self.draw_text_object(to_print, 'Header')
-            to_print = '{}'.format(self.student)
-            self.draw_text_object(to_print, 'Header')
+            # Removed line to preserve anonymity for grading
+            # Uncomment if you want to print out student ID as well
+            #to_print = '{}'.format(self.student)
+            #self.draw_text_object(to_print, 'Header')
         else:
             self.canvas.showPage()
             filename_length = len(a_filename)
@@ -271,7 +273,7 @@ def parseConfig(cfgPath):
     probArr = sorted(probArr, key=lambda prob: int(prob["number"]))
     return probArr
 
-def main(hwNum="hw1", student="ekusuma"):
+def main(hwNum, student):
     cfgPath = CFG_DIR + "/" + hwNum + ".cfg"
     probArr = parseConfig(cfgPath)
 
