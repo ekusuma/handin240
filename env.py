@@ -32,4 +32,4 @@ ROSTER = STAFF_DIR + "/roster_s19.txt";
 CFG_DIR = STAFF_DIR + "/ekusuma/hw_configs";
 
 # Location of font files for ReportLab
-FONT_DIR = STAFF_DIR + "/ekusuma/rl_fonts";
+FONT_DIR = STAFF_DIR + "/ekusuma/240handin/lib";

@@ -240,9 +240,7 @@ def main():
     # Save relevant fields
     isForced = options.force;
     hwNum = args[0];
-    #selfID = os.getlogin().lower();     # Get student's Andrew ID
-    # TODO: delete this line for production
-    selfID = "ekusuma";
+    selfID = os.getlogin().lower();     # Get student's Andrew ID
 
     # Initialize variables
     personalOutput = getOutputHeader(hwNum, selfID);
