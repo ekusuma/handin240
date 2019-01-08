@@ -7,8 +7,11 @@ includes some utility scripts that would be useful for the new workflow.
 Written in Python, intended for ver. 2.7.5.
 
 ## Todos
-- Error handling when necessary files do not exist
-- Convert Python scripts into executables
+- Get basic setup done in AFS
+- Implement compilation success checker
+- Implement automatic tester
+- ~~Error handling when necessary files do not exist~~
+- ~~Convert Python scripts into executables~~
 - ~~Edit `.cfg` file spec to match pretty-print code script~~
 - ~~Create script to modify AFS permissions for each student directory~~
 - Refactor scripts into object-oriented, for ease of use
