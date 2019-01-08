@@ -9,7 +9,7 @@ Written in Python, intended for ver. 2.7.5.
 ## Todos
 - Error handling when necessary files do not exist
 - Convert Python scripts into executables
-- Edit `.cfg` file spec to match pretty-print code script
+- ~~Edit `.cfg` file spec to match pretty-print code script~~
 - ~~Create script to modify AFS permissions for each student directory~~
 - Refactor scripts into object-oriented, for ease of use
 - Define TATB directory and usage
@@ -49,6 +49,14 @@ reliable way to facilitate `cron` jobs on AFS. *Just make sure that someone runs
 this whenever a homework deadline is passed.*
 
 ### Creating homework config files
+Currently, `.cfg` files are split into two different sections: config for the
+handin script, and config for the ReportLab (PDF-maker) script. The reason for
+this is because the two scripts don't necessarily need the same information.
+**Note that the handin config lines must be before the ReportLab config lines**.
+
+There is an [example file](lib/hw1.cfg) `hw1.cfg` inside of the `lib/` folder.
+
+#### Configuring the handin script
 The handin script will read a `.cfg` file in order to figure out what files
 students need for the homework, as well as how they will be used. These `.cfg`
 files must be placed in the directory specified by `CFG_DIR` defined in
@@ -74,6 +82,27 @@ It's worth noting that there is a hierarchy to the handler chars. `c` will check
 for complation as well as existence. `t` will check for both compilation and
 existence. Thus if a file is to be tested, then there is no need to have lines
 with `e` and `c` before it.
+
+#### Configuring the PDF-maker script
+The first thing to note is that the very first line for this config **must** be
+```
+rl_config
+```
+for the script to work. What follows is a set of lines that define the
+parameters for each problem, which have the following format:
+```
+problem $problemNum
+drill ${true, false}
+points $numPoints
+files $listOfFiles
+endproblem
+```
+The order of problems, and within a problem the order of parameters does not
+matter, save for the first and last lines. First line must be `problem X` and
+last line must be `endproblem`.
+
+`$listOfFiles` is a list of necessary files, separated by a space. If the
+problem does not have any files, then type `none` as the argument.
 
 ## Specification
 Student workflow should (roughly) be as follows:
