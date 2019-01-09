@@ -89,6 +89,10 @@ existence. Thus if a file is to be tested, then there is no need to have lines
 with `e` and `c` before it.
 
 #### Configuring the PDF-maker script
+To create the config for this, just use the `create_cfg` helper script. **Note
+that the handin script config needs to be added to the `.cfg` file**. Following
+is a description of the format for the config.
+
 The first thing to note is that the very first line for this config **must** be
 ```
 rl_config
