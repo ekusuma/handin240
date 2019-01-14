@@ -27,17 +27,17 @@ redefined in `env.py`. Students must be separated by newlines.
 
 To create a handin directory, simply run:
 ```bash
-./create_student_dir hwNum
+./open_handin hwNum
 ```
 Where `hwNum` is the homework assignment to create a directory for, i.e.
 ```bash
-./create_student_dir hw5
+./open_handin hw5
 ```
 By default, the script looks for the student roster defined in `env.py`. To pass
 in a separate roster file, run the script with flag `-r` and pass in the path
 to the roster, i.e.
 ```bash
-./create_student_dir -r /path/to/roster.txt hw5
+./open_handin -r /path/to/roster.txt hw5
 ```
 The creation script also sets AFS permissions using `fs`, such that admins and
 course staff may administrate each student handin directory, but only the

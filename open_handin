@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# create_student_dir.py
+# open_handin.py
 #
 # Utility script to create student directories in the assignment's handin
 # folder. Requires a student roster file (filename and path detailed in env.py)
