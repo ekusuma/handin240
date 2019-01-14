@@ -74,11 +74,17 @@ files must be placed in the directory specified by `CFG_DIR` defined in
 - The beginning of each line is a single character that defines how the file
   will be handled. These will be called *handler chars*.
 
-| Handler char | Purpose                | Usage                         |
-| -----------: | ---------------------- | ----------------------------- |
-| `e`          | File exists            | `e hw8prob1.sv`               |
-| `c`          | Can compile            | `c hw8prob1.sv [extra files]` |
-| `t`          | Test with TA testbench | `t hw8prob1.sv [extra files]` |
+| Handler char | Purpose                 | Usage                                      |
+| -----------: | ----------------------- | ------------------------------------------ |
+| `e`          | File exists             | `e hw8prob1.sv`                            |
+| `c`          | Can compile             | `c hw8prob1.sv [extra files]`              |
+| `t`          | Test with TA testbench  | `t hw8prob1.sv [extra files]`              |
+| `m`          | Compile specific module | `c hw8prob1.sv [extra files] m moduleName` |
+
+The `m` char cannot be in a line of its own. Rather, it changes the behavior of
+the `c` and `t` chars to compile with a specified module (using `vlogan` common
+elaboration). This allows us to get around multiple testbenches existing in one
+file.
 
 Note that for `t` files, there must a corresponding `{fileName}_TATB.sv` inside
 of the TATB staff folder (**TODO**: define this directory).

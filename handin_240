@@ -17,6 +17,7 @@ from env import *;
 import os;
 import shutil;
 import optparse;
+import subprocess;
 
 import reportlab, os
 
@@ -141,7 +142,65 @@ def checkExistence(opArr):
     hasError = not os.path.exists("./" + opArr[1]);
     return hasError;
 
-# TODO: checkCompilation(), checkTATB()
+def checkCompilation(opArr):
+    # Check if we want to compile with specific module
+    useSpecificModule = True;
+    try:
+        mIndex = opArr.index("m");
+        moduleName = opArr[mIndex + 1];
+        # Extract files to compile from opArr
+        fileList = opArr[1:mIndex];
+    # Handler char "m" does not exist
+    except ValueError, e:
+        useSpecificModule = False
+        fileList = opArr[1:];
+
+    hasError = False;
+    # Output should only be not None if there is an error
+    compileOutput = None;
+    # Just in case something failed before, clean up old tempDir if it exists
+    shutil.rmtree("./tempDir", ignore_errors=True);
+    # Create temporary directory for compilation files
+    os.mkdir("./tempDir");
+    os.chdir("./tempDir");
+    # For hiding compilation output
+    FNULL = open(os.devnull, "w");
+    oldFileList = list(fileList);
+    # Add "../" prefix to all files
+    fileList = [];
+    for fileName in oldFileList:
+        fileList.append("../" + fileName);
+
+    # TODO: find some way to suppress output for errors
+    if (useSpecificModule):
+        vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
+        try:
+            out = subprocess.check_output(vloganCmd, stderr=FNULL);
+        except subprocess.CalledProcessError, e:
+            hasError = True;
+            compileOutput = e.output;
+        if (not hasError):
+            vcsCmd = ["vcs", "-q", "-sverilog", "-nc", moduleName];
+            try:
+                out = subprocess.check_output(vcsCmd, stderr=FNULL);
+            except subprocess.CalledProcessError, e:
+                hasError = True;
+                compileOutput = e.output + "\n";
+    else:
+        vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList;
+        try:
+            out = subprocess.check_output(vcsCmd, stderr=FNULL);
+        except subprocess.CalledProcessError, e:
+            hasError = True;
+            compileOutput = e.output + "\n";
+
+    # Cleanup
+    FNULL.close();
+    os.chdir("..");
+    shutil.rmtree("./tempDir");
+    return (hasError, compileOutput);
+
+# TODO: checkTATB()
 
 def doOperation(opString, personalOutput):
     opArr = opString.split();
@@ -168,6 +227,8 @@ def doOperation(opString, personalOutput):
             print(output + "\n" + simOutput);
             personalOutput = personalOutput + output + "\n" + simOutput;
             return (hasErrors, personalOutput);
+        else:
+            print(mainFile + ": passes TA testbenches, good");
     elif (handler == "c"):
         hasErrors = checkExistence(opArr);
         if (hasErrors):
@@ -181,6 +242,8 @@ def doOperation(opString, personalOutput):
             print(output + "\n" + vcsOutput);
             personalOutput = personalOutput + output + "\n" + vcsOutput;
             return (hasErrors, personalOutput);
+        else:
+            print(mainFile + ": file compiles, good");
     elif (handler == "e"):
         hasErrors = checkExistence(opArr);
         if (hasErrors):
