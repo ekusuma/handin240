@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# handin_240.py
+# handin240.py
 #
 # Main handin script for students to use to hand in their homework files. Needs
 # a .cfg file to know how to handle each file (see the usage in README.md for
@@ -8,9 +8,12 @@
 # Usage:
 #   - cd into the directory with all of the necessary files
 #   - Run script with the homework number as the argument:
-#       ./handin_240 hw8
+#       ./handin240 hw8
 #   - If the student wishes to submit an incomplete homework (i.e. with certain
 #     files missing or unable to compile) they may run the script with the -f flag
+#
+# Bill Nace <wnace@cmu.edu>         - Reportlab PDF generation
+# Edric Kusuma <ekusuma@cmu.edu>    - Student file handin
 
 from env import *;
 
@@ -18,6 +21,7 @@ import os;
 import shutil;
 import optparse;
 import subprocess;
+import json;
 
 import reportlab, os
 
