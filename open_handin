@@ -9,6 +9,7 @@
 import optparse;
 import os;
 import subprocess;
+import csv;
 from env import *;
 
 isVerbose = False;
@@ -39,11 +40,27 @@ def setStudentPerms(studentID, path):
         studentID, "write"
     ];
     fsCmd += peoplePerms;
-    subprocess.call(fsCmd);
+
+    retVal = None;
+    devnull = open(os.devnull, "w");
+    try:
+        subprocess.check_call(fsCmd, stderr=devnull);
+    except subprocess.CalledProcessError, e:
+        retVal = studentID;
+    devnull.close();
+
+    return retVal;
+
+def printBadIDs(idList):
+    print("\nError: unable to set perms for");
+    for id in idList:
+        print("\t" + id);
+    print("Please check that ID is correct, and that student is in the ECE system.");
 
 # Creates a directory for each student inside of the basePath directory. ids
 # must be an array of student IDs.
 def createStudentDirs(basePath, ids):
+    badIDs = [];
     for student in ids:
         path = basePath + "/" + student.lower();
         if (not os.path.exists(path)):
@@ -51,7 +68,18 @@ def createStudentDirs(basePath, ids):
         elif (isVerbose):
             print("Handin dir already exists for " + student.lower() +
                     ", skipping");
-        setStudentPerms(student, path);
+        retVal = setStudentPerms(student, path);
+        if (retVal != None):
+            badIDs.append(student);
+    if (len(badIDs) != 0):
+        printBadIDs(badIDs);
+
+def parseCSV(csvPath, field="Andrew ID"):
+    csvReader = csv.DictReader(csvPath);
+    studentList = [];
+    for row in csvReader:
+        studentList.append(row[field]);
+    return studentList;
 
 def main():
     (options, args) = getArgs();
@@ -68,12 +96,17 @@ def main():
 
     if (isVerbose):
         print("Using roster file in " + options.rosterPath + "\n");
-    rosterFile = open(options.rosterPath, "r");
-    studentIDs = rosterFile.read().split();
+    try:
+        rosterFile = open(options.rosterPath, "r");
+    except IOError, e:
+        print("Error: no such file in " + options.rosterPath);
+        print("\nHandin directories not created. Exiting...");
+        return 255;
+    studentIDs = parseCSV(rosterFile);
     createStudentDirs(handinDir, studentIDs);
     rosterFile.close();
 
-    print("Handin directories created.");
+    print("\nHandin directories created.");
     return 0;
 
 exit(main());

@@ -34,12 +34,32 @@ def closeStudentPerms(studentID, path):
         studentID, "read"
     ];
     fsCmd += peoplePerms;
-    subprocess.call(fsCmd);
+
+    retVal = None;
+    devnull = open(os.devnull, "w");
+    try:
+        subprocess.check_call(fsCmd, stderr=devnull);
+    except subprocess.CalledProcessError, e:
+        retVal = studentID;
+    devnull.close();
+
+    return retVal;
+
+def printBadIDs(idList):
+    print("\nError: unable to set perms for");
+    for id in idList:
+        print("\t" + id);
+    print("Please check that ID is correct, and that student is in the ECE system.");
 
 def closeStudentDirs(basePath, dirs):
+    badIDs = [];
     for studentDir in dirs:
         path = basePath + "/" + studentDir;
-        closeStudentPerms(studentDir, path);
+        retVal = closeStudentPerms(studentDir, path);
+        if (retVal != None):
+            badIDs.append(studentDir);
+    if (len(badIDs) != 0):
+        printBadIDs(badIDs);
 
 def main():
     (options, args) = getArgs();
@@ -48,13 +68,13 @@ def main():
     handinDir = HANDIN_DIR + "/" + hwNum;
     print("Closing handin directories in " + handinDir);
     if (not os.path.exists(handinDir)):
-        print(hwNum + " handin directory does not exist.");
+        print("\n" + hwNum + " handin directory does not exist.");
         exit(255);
     fileList = os.listdir(handinDir);
 
     closeStudentDirs(handinDir, fileList);
 
-    print("Handin directories closed.");
+    print("\nHandin directories closed.");
     return 0;
 
 exit(main());

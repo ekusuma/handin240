@@ -25,8 +25,8 @@ Written in Python, intended for ver. 2.7.5.
 ## Usage
 ### Handin directory utilities
 #### Handin creation
-**Requires a roster of students, by Andrew ID.** Name of this roster can be
-redefined in `env.py`. Students must be separated by newlines.
+**Requires a roster of students, in CSV.** The CSV must have an `Andrew ID`
+column. Name of this roster can be redefined in `env.py`.
 
 To create a handin directory, simply run:
 ```bash
