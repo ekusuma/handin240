@@ -19,6 +19,9 @@ Written in Python, intended for ver. 2.7.5.
 - Refactor scripts into object-oriented, for ease of use
 - Define TATB directory and usage
 
+## Installation
+**TODO**
+
 ## Usage
 ### Handin directory utilities
 #### Handin creation
