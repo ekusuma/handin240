@@ -7,6 +7,7 @@ includes some utility scripts that would be useful for the new workflow.
 Written in Python, intended for ver. 2.7.5.
 
 ## Todos
+- Write student README
 - Get basic setup done in AFS
 - Check if script works if files are within STAFF directory
     - Bad permissions (see relevant issue)
