@@ -50,19 +50,23 @@ For usage of scripts, *please see the relevant branches' READMEs*.
    folder, etc), and push to `master`.
 2. `cd` to the folder where the **student** scripts should be deployed
 3. Clone the student repo
+
 ```bash
 $ git clone git@git.ece.cmu.edu:ekusuma/240-handin.git -b prod/student
 ```
 4. Checkout the `env.py` file from `master` to student repo
+
 ```bash
 $ git checkout master env.py
 ```
 5. `cd` to the folder where the **staff** scripts should be deployed
 6. Clone the staff repo
+
 ```bash
 $ git clone git@git.ece.cmu.edu:ekusuma/240-handin.git -b prod/staff
 ```
 7. Checkout the `env.py` file from `master` to staff repo
+
 ```bash
 $ git checkout master env.py
 ```
