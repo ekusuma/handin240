@@ -99,3 +99,5 @@ assignment then run the script with the `-f` flag:
 $ handin240 hwNum -f
 ```
 and this will force the handin with incomplete files.
+
+Again, **do not forget to submit the PDF to Gradescope**!
