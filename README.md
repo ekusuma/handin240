@@ -58,6 +58,7 @@ Homework config files must meet the following requirements:
 - Be named `hwNum_cfg.json`
 
 The JSON must be an *array* of objects that have the following attributes:
+
 | Attribute        | Type            | Description                                                                                                        |
 | ---------------: | --------------- | -------------------------------------------------------------------------------------------------------------------|
 | `number`         | `int`           | Problem number (i.e. order in homework)                                                                            |
