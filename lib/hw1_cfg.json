@@ -1,0 +1,137 @@
+[
+    {
+        "number": 1,
+        "drill": true,
+        "points": 3,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 2,
+        "drill": true,
+        "points": 1,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 3,
+        "drill": true,
+        "points": 1,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 4,
+        "drill": true,
+        "points": 2,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 5,
+        "drill": true,
+        "points": 3,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 6,
+        "drill": true,
+        "points": 4,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 7,
+        "drill": true,
+        "points": 4,
+        "files": ["hw1prob7.sv"],
+        "compileFiles": ["hw1prob7.sv"],
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 8,
+        "drill": true,
+        "points": 4,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 9,
+        "drill": true,
+        "points": 4,
+        "files": ["hw1prob9.sv"],
+        "compileFiles": ["hw1prob9.sv"],
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 10,
+        "drill": true,
+        "points": 6,
+        "files": ["hw1prob10.sv"],
+        "compileFiles": ["hw1prob10.sv"],
+        "testFiles": null,
+        "specificModule": "foo"
+    },
+    {
+        "number": 11,
+        "drill": false,
+        "points": 6,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 12,
+        "drill": false,
+        "points": 4,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 13,
+        "drill": false,
+        "points": 6,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 14,
+        "drill": false,
+        "points": 6,
+        "files": ["hw1prob14.sv"],
+        "compileFiles": ["hw1prob14.sv"],
+        "testFiles": null,
+        "specificModule": null
+    },
+    {
+        "number": 15,
+        "drill": false,
+        "points": 10,
+        "files": ["hw1prob15.sv", "hw1prob15_sim.txt"],
+        "compileFiles": ["hw1prob15.sv"],
+        "testFiles": null,
+        "specificModule": null
+    }
+]
