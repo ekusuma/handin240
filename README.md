@@ -24,20 +24,24 @@ in preparation for Lab0).
    machine. There is a Unix guide on Canvas if you're confused as to what SSH
    means.
 2. Edit your `.bashrc` by typing (do not type in the `$`!)
+
 ```bash
 $ vim ~/.bashrc
 ```
 If you are not familiar with Vim, then guide on Canvas also goes through this.
 Otherwise you can just Google how to use Vim.
 3. Add the following line to your `.bashrc`
+
 ```
 source /afs/ece/class/ece240/bin/setup_240
 ```
 4. Edit your `.bash_profile` by typing
+
 ```bash
 $ vim ~/.bash_profile
 ```
 5. Add the following lines to your `.bash_profile`
+
 ```
 if [ -f $HOME/.bashrc ]; then
     source $HOME/.bashrc
