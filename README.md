@@ -6,118 +6,66 @@ includes some utility scripts that would be useful for the new workflow.
 
 Written in Python, intended for ver. 2.7.5.
 
+## Repository Organization
+The repository is organized into the following branches:
+
+| Branch Name    | Description                                                         |
+| -------------: | ------------------------------------------------------------------- |
+| `master`       | Track overall project, some example files, and define env variables |
+| `dev/staff`    | Development branch for staff-facing files                           |
+| `dev/student`  | Development branch for student-facing files                         |
+| `prod/staff`   | Production branch for staff-facing files (to host on AFS)           |
+| `prod/student` | Production branch for student-facing files (to host on AFS          |
+
+All development is to be done on the `dev/*` branches. Once new features are
+complete **and have been tested**, they may be merged to their respective `prod/*`
+branch.
+
+The `master` branch is just here to document the roadmap of the project as a
+whole (i.e. both student and staff branches). Files in [lib/](lib/) serve as
+helpful reference files, as well as the font(s) needed for Reportlab to
+function.
+
+For usage of scripts, *please see the relevant branches' READMEs*.
+
 ## Todos
+### Overall Todos
+- Write different READMEs for both staff and student branches
 - Get basic setup done in AFS
-- Check if script works if files are within STAFF directory
-    - Bad permissions (see relevant issue)
-- Implement compilation success checker
-- Implement automatic tester
-- ~~Error handling when necessary files do not exist~~
-- ~~Convert Python scripts into executables~~
-- ~~Edit `.cfg` file spec to match pretty-print code script~~
-- ~~Create script to modify AFS permissions for each student directory~~
 - Refactor scripts into object-oriented, for ease of use
 - Define TATB directory and usage
+- ~~Convert Python scripts into executables~~
+- ~~Edit `.cfg` file spec to match pretty-print code script~~
+### Staff Todos
+- ~~Create script to modify AFS permissions for each student directory~~
+### Student Todos
+- Implement automatic tester
+- ~~Error handling when necessary files do not exist~~
+- ~~Check if script works if files are within STAFF directory~~ Nope, we'll have
+  to deploy student files in the public course space
+- ~~Implement compilation success checker~~
 
-## Usage
-### Handin directory utilities
-#### Handin creation
-**Requires a roster of students, by Andrew ID.** Name of this roster can be
-redefined in `env.py`. Students must be separated by newlines.
-
-To create a handin directory, simply run:
+## Installation
+1. Ensure [env.py](env.py) is defined (things like course folder, handin, staff
+   folder, etc), and push to `master`.
+2. `cd` to the folder where the **student** scripts should be deployed
+3. Clone the student repo
 ```bash
-./open_handin hwNum
+$ git clone git@git.ece.cmu.edu:ekusuma/240-handin.git -b prod/student
 ```
-Where `hwNum` is the homework assignment to create a directory for, i.e.
+4. Checkout the `env.py` file from `master` to student repo
 ```bash
-./open_handin hw5
+$ git checkout master env.py
 ```
-By default, the script looks for the student roster defined in `env.py`. To pass
-in a separate roster file, run the script with flag `-r` and pass in the path
-to the roster, i.e.
+5. `cd` to the folder where the **staff** scripts should be deployed
+6. Clone the staff repo
 ```bash
-./open_handin -r /path/to/roster.txt hw5
+$ git clone git@git.ece.cmu.edu:ekusuma/240-handin.git -b prod/staff
 ```
-The creation script also sets AFS permissions using `fs`, such that admins and
-course staff may administrate each student handin directory, but only the
-student may have write access.
-#### Handin closing
-When the homework deadline has passed, course staff may replace each student's
-write permissions with read permissions (to prevent late submissions) by running
-the following:
+7. Checkout the `env.py` file from `master` to staff repo
 ```bash
-./close_handin hwNum
+$ git checkout master env.py
 ```
-Unfortunately this script must be run manually, as currently there is no
-reliable way to facilitate `cron` jobs on AFS. *Just make sure that someone runs
-this whenever a homework deadline is passed.*
-
-### Creating homework config files
-Currently, `.cfg` files are split into two different sections: config for the
-handin script, and config for the ReportLab (PDF-maker) script. The reason for
-this is because the two scripts don't necessarily need the same information.
-**Note that the handin config lines must be before the ReportLab config lines**.
-
-There is an [example file](lib/hw1.cfg) `hw1.cfg` inside of the `lib/` folder.
-
-#### Configuring the handin script
-The handin script will read a `.cfg` file in order to figure out what files
-students need for the homework, as well as how they will be used. These `.cfg`
-files must be placed in the directory specified by `CFG_DIR` defined in
-`env.py`. These files will be formatted as follows:
-- Each file is to be separated by a newline
-- Blank lines and comments (lines that begin with `#`) will be ignored
-    - At this time, only lines that **begin** with `#` will be treated as
-      comments
-- Arguments in a line are separated by a space
-- The beginning of each line is a single character that defines how the file
-  will be handled. These will be called *handler chars*.
-
-| Handler char | Purpose                 | Usage                                      |
-| -----------: | ----------------------- | ------------------------------------------ |
-| `e`          | File exists             | `e hw8prob1.sv`                            |
-| `c`          | Can compile             | `c hw8prob1.sv [extra files]`              |
-| `t`          | Test with TA testbench  | `t hw8prob1.sv [extra files]`              |
-| `m`          | Compile specific module | `c hw8prob1.sv [extra files] m moduleName` |
-
-The `m` char cannot be in a line of its own. Rather, it changes the behavior of
-the `c` and `t` chars to compile with a specified module (using `vlogan` common
-elaboration). This allows us to get around multiple testbenches existing in one
-file.
-
-Note that for `t` files, there must a corresponding `{fileName}_TATB.sv` inside
-of the TATB staff folder (**TODO**: define this directory).
-
-It's worth noting that there is a hierarchy to the handler chars. `c` will check
-for complation as well as existence. `t` will check for both compilation and
-existence. Thus if a file is to be tested, then there is no need to have lines
-with `e` and `c` before it.
-
-#### Configuring the PDF-maker script
-To create the config for this, just use the `create_cfg` helper script. **Note
-that the handin script config needs to be added to the `.cfg` file**. Following
-is a description of the format for the config.
-
-The first thing to note is that the very first line for this config **must** be
-```
-rl_config
-```
-for the script to work. What follows is a set of lines that define the
-parameters for each problem, which have the following format:
-```
-problem $problemNum
-drill ${true, false}
-points $numPoints
-files $listOfFiles
-endproblem
-```
-The order of problems, and within a problem the order of parameters does not
-matter, save for the first and last lines. First line must be `problem X` and
-last line must be `endproblem`.
-
-`$listOfFiles` is a list of necessary files, separated by a space. If the
-problem does not have any files, then type `none` as the argument.
 
 ## Specification
 Student workflow should (roughly) be as follows:

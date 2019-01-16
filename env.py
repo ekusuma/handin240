@@ -5,12 +5,8 @@
 #
 # Edric Kusuma (ekusuma)
 
-# List of legal handler chars
-HANDLER_CHARS = [
-    "e",    # Exists
-    "c",    # Compiles
-    "t"     # Passes tests
-];
+# Path to repo's folder
+REPO_DIR = "/afs/ece.cmu.edu/class/ee240/STAFF/ekusuma/240handin";
 
 # Main course directory in AFS space
 #COURSE_DIR = "/afs/ece.cmu.edu/class/ee240";
@@ -19,6 +15,7 @@ COURSE_DIR = "/afs/ece.cmu.edu/class/ee240/STAFF/ekusuma/240handin/course";
 
 # Directory where student submissions should be entered
 HANDIN_DIR = COURSE_DIR + "/handin";
+
 # Directory where homework files will be
 HANDOUT_DIR = COURSE_DIR + "/handout";
 
@@ -26,10 +23,10 @@ HANDOUT_DIR = COURSE_DIR + "/handout";
 STAFF_DIR = COURSE_DIR + "/STAFF";
 
 # Location of current student roster
-ROSTER = STAFF_DIR + "/roster_s19.txt";
+ROSTER = STAFF_DIR + "/roster_s19.csv";
 
 # Location of homework cfg files
-CFG_DIR = STAFF_DIR + "/ekusuma/hw_configs";
+CFG_DIR = HANDOUT_DIR + "/hwConfigs";
 
 # Location of font files for ReportLab
-FONT_DIR = STAFF_DIR + "/ekusuma/240handin/lib";
+FONT_DIR = REPO_DIR + "/lib";
