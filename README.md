@@ -1,26 +1,16 @@
-# 18240 Handin Tool
+# 18240 Handin Tool (staff ver.)
 A handin utility tool for 18240 assignments. Meant to streamline student
 workflow with respect to code submissions with the intent of removing Autolab
 from the flow entirely, as well as make the lives of the (best) TAs easier. Also
 includes some utility scripts that would be useful for the new workflow.
 
+This branch contains scripts pertinent for staff workflow:
+1. Creating handin directories for students for a given homework
+2. Close said handin directories
+3. Grant extensions for specific students for a given homework
+4. Create homework configuration files (WIP, still needs to be done)
+
 Written in Python, intended for ver. 2.7.5.
-
-## Todos
-- Get basic setup done in AFS
-- Check if script works if files are within STAFF directory
-    - Bad permissions (see relevant issue)
-- Implement compilation success checker
-- Implement automatic tester
-- ~~Error handling when necessary files do not exist~~
-- ~~Convert Python scripts into executables~~
-- ~~Edit `.cfg` file spec to match pretty-print code script~~
-- ~~Create script to modify AFS permissions for each student directory~~
-- Refactor scripts into object-oriented, for ease of use
-- Define TATB directory and usage
-
-## Installation
-**TODO**
 
 ## Usage
 ### Handin directory utilities
@@ -30,152 +20,58 @@ column. Name of this roster can be redefined in `env.py`.
 
 To create a handin directory, simply run:
 ```bash
-./open_handin hwNum
+$ ./open_handin hwNum
 ```
 Where `hwNum` is the homework assignment to create a directory for, i.e.
 ```bash
-./open_handin hw5
+$ ./open_handin hw5
 ```
 By default, the script looks for the student roster defined in `env.py`. To pass
 in a separate roster file, run the script with flag `-r` and pass in the path
 to the roster, i.e.
 ```bash
-./open_handin -r /path/to/roster.txt hw5
+$ ./open_handin -r /path/to/roster.txt hw5
 ```
 The creation script also sets AFS permissions using `fs`, such that admins and
 course staff may administrate each student handin directory, but only the
 student may have write access.
+
+Specifically:
+```bash
+$ fs seta -dir $studentDir -clear -acl system:web-srv-users rl ee240:ta all ee240:staff all ee240 all system:administrators all $studentID write
+```
 #### Handin closing
 When the homework deadline has passed, course staff may replace each student's
 write permissions with read permissions (to prevent late submissions) by running
 the following:
 ```bash
-./close_handin hwNum
+$ ./close_handin hwNum
 ```
-Unfortunately this script must be run manually, as currently there is no
+Unfortunately this script must be run *manually*, as currently there is no
 reliable way to facilitate `cron` jobs on AFS. *Just make sure that someone runs
 this whenever a homework deadline is passed.*
 
 ### Creating homework config files
-Currently, `.cfg` files are split into two different sections: config for the
-handin script, and config for the ReportLab (PDF-maker) script. The reason for
-this is because the two scripts don't necessarily need the same information.
-**Note that the handin config lines must be before the ReportLab config lines**.
+Homework config files must meet the following requirements:
+- Placed in the directory specified in `env.py`
+- Be of `.json` format
+- Be named `hwNum_cfg.json`
 
-There is an [example file](lib/hw1.cfg) `hw1.cfg` inside of the `lib/` folder.
+The JSON must be an *array* of objects that have the following attributes:
+| Attribute        | Type            | Description                                                                                                        |
+| ---------------: | --------------- | -------------------------------------------------------------------------------------------------------------------|
+| `number`         | `int`           | Problem number (i.e. order in homework)                                                                            |
+| `drill`          | `bool`          | Is the problem a drill problem?                                                                                    |
+| `points`         | `int`           | Point value for problem                                                                                            |
+| `files`          | `[str] or null` | List of filenames that student must submit                                                                         |
+| `compileFiles`   | `[str] or null` | List of files that must compile together (these files will be what is passed into `vcs`                            |
+| `testFiles`      | `[str] or null` | List of TA testbench file(s) for autograding.  These must be placed in a specific directory (to be decided)        |
+| `specificModule` | `str or null`   | Name of a **specific** module to compile, in case the file has multiple conflicting modules. Uses `vlogan` parsing |
 
-#### Configuring the handin script
-The handin script will read a `.cfg` file in order to figure out what files
-students need for the homework, as well as how they will be used. These `.cfg`
-files must be placed in the directory specified by `CFG_DIR` defined in
-`env.py`. These files will be formatted as follows:
-- Each file is to be separated by a newline
-- Blank lines and comments (lines that begin with `#`) will be ignored
-    - At this time, only lines that **begin** with `#` will be treated as
-      comments
-- Arguments in a line are separated by a space
-- The beginning of each line is a single character that defines how the file
-  will be handled. These will be called *handler chars*.
+For the last four attributes, if the attribute does not apply then they may be
+`null`.
 
-| Handler char | Purpose                 | Usage                                      |
-| -----------: | ----------------------- | ------------------------------------------ |
-| `e`          | File exists             | `e hw8prob1.sv`                            |
-| `c`          | Can compile             | `c hw8prob1.sv [extra files]`              |
-| `t`          | Test with TA testbench  | `t hw8prob1.sv [extra files]`              |
-| `m`          | Compile specific module | `c hw8prob1.sv [extra files] m moduleName` |
+See the example file `lib/hw1_cfg.json` in the `master` branch for guidance.
 
-The `m` char cannot be in a line of its own. Rather, it changes the behavior of
-the `c` and `t` chars to compile with a specified module (using `vlogan` common
-elaboration). This allows us to get around multiple testbenches existing in one
-file.
-
-Note that for `t` files, there must a corresponding `{fileName}_TATB.sv` inside
-of the TATB staff folder (**TODO**: define this directory).
-
-It's worth noting that there is a hierarchy to the handler chars. `c` will check
-for complation as well as existence. `t` will check for both compilation and
-existence. Thus if a file is to be tested, then there is no need to have lines
-with `e` and `c` before it.
-
-#### Configuring the PDF-maker script
-To create the config for this, just use the `create_cfg` helper script. **Note
-that the handin script config needs to be added to the `.cfg` file**. Following
-is a description of the format for the config.
-
-The first thing to note is that the very first line for this config **must** be
-```
-rl_config
-```
-for the script to work. What follows is a set of lines that define the
-parameters for each problem, which have the following format:
-```
-problem $problemNum
-drill ${true, false}
-points $numPoints
-files $listOfFiles
-endproblem
-```
-The order of problems, and within a problem the order of parameters does not
-matter, save for the first and last lines. First line must be `problem X` and
-last line must be `endproblem`.
-
-`$listOfFiles` is a list of necessary files, separated by a space. If the
-problem does not have any files, then type `none` as the argument.
-
-## Specification
-Student workflow should (roughly) be as follows:
-1. Do homework involving "PDFed" answers and "Code" answers. Code answers will
-be in a set of `.sv`, `.timing`, `.asm`, etc files. There may be multiple code answer
-files, of varying types. The PDFed answer file is a scan of the student’s
-handwritten work, for instance. **There will only ever be a single PDFed file.**
-2. Student places code files in a directory in their own AFS space. This is
-probably where they’ve been working anyway, as they need access to VCS, as240,
-etc.
-3. Student runs our handin script, as they now do. The script is a python
-program. We envision lots of cool things that this script will eventually
-do.
-4. Student discovers there is a new file in the AFS directory - a PDF file
-with a name like `HW3_code.pdf`. This file is a "pretty" version of their
-code files.
-5. Student copies `HWX_code.pdf` to a local machine, where the "PDFed"
-file exists.
-6. Student goes to gradescope and submits each file to a separate
-homework assignment: HW3 and HW3-code, for instance.
-7. After homework is graded, they go to gradescope to get their grades on the
-two portions of the homework. The HWX-code assignment contains the pretty pdf,
-which has been annotated with style or other comments. The HWX-code assignment
-has rubrics not only for style, but also for all of the functionality tests that
-have been graded.
-
-Some potential features include:
-- Detect the student’s Andrew ID
-- Check that the current directory is in the student’s space (actually, that
-it isn’t in the class space and is a writeable directory)
-- Check that each required file exists.
-- Copy each required file into the handin directory in the course space
-- Use `reportlab` to make a pretty pdf with each code file printed
-on a different page.
-- Test the file and report results:
-    - We will need to find some workaround involving permissions. Students need
-      to be able to read the TA testbenches, but if they can then too much
-      information would be disclosed. Perhaps a `.svp` inside of the `handout`
-      directory is the way to go?
-    - What happens here will vary depending on the type of question. At the very
-    least, it would check for proper compilation. It could try using our
-    testbench on the student’s design. It might use a simple testbench, as
-    opposed to a deeper grading testbench.
-    - It would be nice if all of the VCS garbage output was captured and parsed
-    without the student seeing it.  Ideally, the student would just get a report
-    that looks something like:
-```
-Problem 3: Your file (hw6prob3.sv) does not compile.
-Problem 4: 3 of 4 tests passed
-Problem 7: File hw6prob7.timing was not found
-The file hw6_code.pdf was created. Make sure to submit this file to gradescope!
-```
-
-Potential utility scripts that aren't used for students:
-- Parse a roster of Andrew IDs to create folders for their submissions for a
-  given homework.
-- Add the ability to automatically configure `fs` so student has R/W permissions
-- Also the ability to disable those permissions once the deadline passes
+In the future there are plans to create a helper script to make the JSON
+generation much, much easier.
