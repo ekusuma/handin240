@@ -4,6 +4,8 @@
 # Utility script for reopening handin directory for specific students, if
 # extensions are to be given for whatever reason. Once the extension time has
 # passed, the close_handin script can be used to again close all handins.
+#
+# Edric Kusuma <ekusuma@cmu.edu>
 
 import optparse;
 import os;

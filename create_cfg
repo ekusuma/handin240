@@ -5,6 +5,8 @@
 #
 # Usage:
 #   - Run script with the homework number as the argument
+#
+# Edric Kusuma <ekusuma@cmu.edu>
 
 import os;
 import optparse;

@@ -5,6 +5,8 @@
 # folder. Requires a student roster file (filename and path detailed in env.py)
 # that has all student Andrew IDs, separated by a newline. Requires the user
 # running the script to be someone with access to the STAFF folder.
+#
+# Edric Kusuma <ekusuma@cmu.edu>
 
 import optparse;
 import os;
