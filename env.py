@@ -5,13 +5,8 @@
 #
 # Edric Kusuma (ekusuma)
 
-# Path to repo's folder
-REPO_DIR = "/afs/ece.cmu.edu/class/ee240/STAFF/ekusuma/240handin";
-
 # Main course directory in AFS space
-#COURSE_DIR = "/afs/ece.cmu.edu/class/ee240";
-# Directory for test use
-COURSE_DIR = "/afs/ece.cmu.edu/class/ee240/STAFF/ekusuma/240handin/course";
+COURSE_DIR = "/afs/ece.cmu.edu/class/ee240";
 
 # Directory where student submissions should be entered
 HANDIN_DIR = COURSE_DIR + "/handin";
@@ -28,5 +23,9 @@ ROSTER = STAFF_DIR + "/roster_s19.csv";
 # Location of homework cfg files
 CFG_DIR = HANDOUT_DIR + "/hwConfigs";
 
+# Path to repo's folder
+REPO_DIR_STUDENT = "/afs/ece.cmu.edu/class/ee240/bin/handin240_repo";
+REPO_DIR_STAFF = STAFF_DIR + "/scripts/handin240_repo"
+
 # Location of font files for ReportLab
-FONT_DIR = REPO_DIR + "/lib";
+FONT_DIR = REPO_DIR_STUDENT + "/lib";
