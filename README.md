@@ -11,7 +11,8 @@ Written in Python, intended for ver. 2.7.5.
 - Get basic setup done in AFS
 - Check if script works if files are within STAFF directory
     - Bad permissions (see relevant issue)
-- Implement compilation success checker
+- Stop being lazy and write good module headers
+- ~~Implement compilation success checker~~
 - Implement automatic tester
 - ~~Error handling when necessary files do not exist~~
 - ~~Convert Python scripts into executables~~

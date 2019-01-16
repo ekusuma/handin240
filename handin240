@@ -61,6 +61,17 @@ HEADER_LINE = "*" * HEADER_LEN + "\n";
 # Generic error handler. If fatal is true, then the error will cause the program
 # to terminate. Note that if cleanup is necessary in the case of an error (i.e.
 # deleting temporary directories), then fatal should be set to false.
+#
+# Args:
+#   message (string):
+#       A message that describes the error.
+#   fatal (bool):
+#       Whether or not the message is fatal (and therefore will exit rather than
+#       return).
+#
+# Returns:
+#   (int):
+#       A non-zero exit code, to signify an error.
 def error(message, fatal=False):
     print(bcolors.FAIL + "ERROR: " + bcolors.ENDC + message);
     if (fatal):
@@ -69,9 +80,24 @@ def error(message, fatal=False):
         return 255;
 
 # Generic warning handler.
+#
+# Args:
+#   message (string):
+#       A message that describes the warning.
+#
+# No return value.
 def warning(message):
     print(bcolors.WARNING + "WARNING: " +bcolors.ENDC + message);
 
+# Used to write a line in the header for the errors.log file.
+#
+# Args:
+#   header (string):
+#       Text to write in one line of the header.
+#
+# Returns:
+#   (string):
+#       Formatted header line string.
 def writeHeaderLine(header):
     maxLen = HEADER_LEN - 2;    # Beginning and ending "*"
     remaining = maxLen - len(header);
@@ -92,6 +118,8 @@ def getArgs():
         parser.error("Must specify homework number as arg");
     return (options, args);
 
+# Parses the hw config JSON and returns a dict with the JS object attributes as
+# keys. See the README for how config files must be defined.
 def parseConfig(configPath):
     if (not os.path.exists(configPath)):
         error("no such config file. Are you sure the hw number is correct?", fatal=True);
@@ -100,6 +128,8 @@ def parseConfig(configPath):
     configFile.close();
     return config;
 
+# Returns a string that is an error message formatted as:
+#       fileName: errorType
 def getOpError(mainFile, errType):
     if (errType == ERR_NOEXIST):
         errMessage = "file does not exist";
@@ -111,6 +141,7 @@ def getOpError(mainFile, errType):
         errMessage = "unspecified error"
     return mainFile + ": " + bcolors.FAIL + errMessage + bcolors.ENDC;
 
+# Returns a boolean value
 def checkExistence(fileList):
     hasError = False;
     for f in fileList:
