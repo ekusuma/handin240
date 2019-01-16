@@ -87,7 +87,7 @@
         "files": ["hw1prob10.sv"],
         "compileFiles": ["hw1prob10.sv"],
         "testFiles": null,
-        "specificModule": null
+        "specificModule": "foo"
     },
     {
         "number": 11,

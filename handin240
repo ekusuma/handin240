@@ -92,44 +92,13 @@ def getArgs():
         parser.error("Must specify homework number as arg");
     return (options, args);
 
-def checkValidOp(opString):
-    # For use if there is an error
-    badOp = "\nOffending instruction: '" + opString + "'";
-    opArr = opString.split();
-    if (len(opArr) < 2):
-        error("Not enough args in config file" + badOp, fatal=True);
-    handler = opArr[0];
-    if (not isValidHandlerChar(handler)):
-        error("Invalid handler char in config file" + badOp, fatal=True);
-
 def parseConfig(configPath):
     if (not os.path.exists(configPath)):
         error("no such config file. Are you sure the hw number is correct?", fatal=True);
     configFile = open(configPath, "r");
-    opArray = configFile.read().strip().split("\n");
-    result = [];
-    badLine = False;
-
-    # Check validity of parsed operations
-    for (i, line) in enumerate(opArray):
-        # Remove line if empty or a comment
-        if ((badLine) or (len(line) == 0) or (line[0] == "#")):
-            continue;
-        if (line == "rl_config"):       # Skip RL's config lines
-            badLine = True;
-            continue;
-        checkValidOp(line);
-        # Only append to result array if everything checks out
-        result.append(line);
-
+    config = json.load(configFile);
     configFile.close();
-    return result;
-
-def isValidHandlerChar(handler):
-    if ((len(handler) != 1) or (handler not in HANDLER_CHARS)):
-        return False;
-    else:
-        return True;
+    return config;
 
 def getOpError(mainFile, errType):
     if (errType == ERR_NOEXIST):
@@ -142,31 +111,32 @@ def getOpError(mainFile, errType):
         errMessage = "unspecified error"
     return mainFile + ": " + bcolors.FAIL + errMessage + bcolors.ENDC;
 
-def checkExistence(opArr):
-    hasError = not os.path.exists("./" + opArr[1]);
+def checkExistence(fileList):
+    hasError = False;
+    for f in fileList:
+        if (not os.path.exists("./" + f)):
+            hasError = True;
     return hasError;
 
-def checkCompilation(opArr):
+def checkCompilation(fileList):
     # Check if we want to compile with specific module
-    useSpecificModule = True;
+    useSpecificModule = ("m" in fileList);
     try:
-        mIndex = opArr.index("m");
-        moduleName = opArr[mIndex + 1];
-        # Extract files to compile from opArr
-        fileList = opArr[1:mIndex];
+        mIndex = fileList.index("m");
+        useSpecificModule = True;
+        moduleName = fileList[mIndex + 1];
     # Handler char "m" does not exist
     except ValueError, e:
-        useSpecificModule = False
-        fileList = opArr[1:];
+        useSpecificModule = False;
 
     hasError = False;
     # Output should only be not None if there is an error
     compileOutput = None;
-    # Just in case something failed before, clean up old tempDir if it exists
-    shutil.rmtree("./tempDir", ignore_errors=True);
+    # Just in case something failed before, clean up old temp240 if it exists
+    shutil.rmtree("./temp240", ignore_errors=True);
     # Create temporary directory for compilation files
-    os.mkdir("./tempDir");
-    os.chdir("./tempDir");
+    os.mkdir("./temp240");
+    os.chdir("./temp240");
     # For hiding compilation output
     FNULL = open(os.devnull, "w");
     oldFileList = list(fileList);
@@ -201,46 +171,46 @@ def checkCompilation(opArr):
     # Cleanup
     FNULL.close();
     os.chdir("..");
-    shutil.rmtree("./tempDir");
+    shutil.rmtree("./temp240");
     return (hasError, compileOutput);
 
 # TODO: checkTATB()
 
-def doOperation(opString, personalOutput):
-    opArr = opString.split();
-    handler = opArr[0];
-    mainFile = opArr[1];
+def doOperation(op, personalOutput):
+    handler = op[0];
+    fileList = op[1];
+    mainFile = fileList[0];
     hasErrors = False;
 
     if (handler == "t"):
-        hasErrors = checkExistence(opArr);
+        hasErrors = checkExistence(fileList);
         if (hasErrors):
             output = getOpError(mainFile, ERR_NOEXIST);
             print(output);
             personalOutput = personalOutput + output + "\n";
             return (hasErrors, personalOutput);
-        (hasErrors, vcsOutput) = checkCompilation(opArr);
+        (hasErrors, vcsOutput) = checkCompilation(fileList);
         if (hasErrors):
             output = getOpError(mainFile, ERR_NOCOMPILE);
             print(output + "\n" + vcsOutput);
             personalOutput = personalOutput + output + "\n" + vcsOutput;
             return (hasErrors, personalOutput);
-        (hasErrors, simOutput) = checkTATB(opArr);
-        if (hasErrors):
-            output = getOpError(mainFile, ERR_FAILTEST);
-            print(output + "\n" + simOutput);
-            personalOutput = personalOutput + output + "\n" + simOutput;
-            return (hasErrors, personalOutput);
+        #(hasErrors, simOutput) = checkTATB(fileList);
+        #if (hasErrors):
+        #    output = getOpError(mainFile, ERR_FAILTEST);
+        #    print(output + "\n" + simOutput);
+        #    personalOutput = personalOutput + output + "\n" + simOutput;
+        #    return (hasErrors, personalOutput);
         else:
             print(mainFile + ": passes TA testbenches, good");
     elif (handler == "c"):
-        hasErrors = checkExistence(opArr);
+        hasErrors = checkExistence(fileList);
         if (hasErrors):
             output = getOpError(mainFile, ERR_NOEXIST);
             print(output);
             personalOutput = personalOutput + output + "\n";
             return (hasErrors, personalOutput);
-        (hasErrors, vcsOutput) = checkCompilation(opArr);
+        (hasErrors, vcsOutput) = checkCompilation(fileList);
         if (hasErrors):
             output = getOpError(mainFile, ERR_NOCOMPILE);
             print(output + "\n" + vcsOutput);
@@ -249,7 +219,7 @@ def doOperation(opString, personalOutput):
         else:
             print(mainFile + ": file compiles, good");
     elif (handler == "e"):
-        hasErrors = checkExistence(opArr);
+        hasErrors = checkExistence(fileList);
         if (hasErrors):
             output = getOpError(mainFile, ERR_NOEXIST);
             print(output);
@@ -285,13 +255,13 @@ def getOutputHeader(hwNum, studentID):
 
 # Returns True on success, False on failure
 def doHandin(hwNum, studentID, filesToSubmit, badFiles=None):
-    # TODO: complete this function
     studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID;
 
     # Check if student exists in handin directory
     if (not os.path.exists(studentDir)):
         reason = "your handin directory was not found. Are you sure you are " + \
                  "enrolled? Please contact course staff if the problem persists.";
+        print("");
         error(reason);
         return False;
 
@@ -308,6 +278,7 @@ def doHandin(hwNum, studentID, filesToSubmit, badFiles=None):
         shutil.copy("./errors.log", badFilesDir);
         for fileName in badFiles:
             path = "./" + fileName;
+            # This handles the case where file does not exist
             if (not os.path.exists(path)):
                 continue;
             shutil.copy(path, badFilesDir);
@@ -543,55 +514,39 @@ class HW_Code_Maker:
                     self.line_number += 1
         self.canvas.showPage()
 
-def parseRLConfig(cfgPath):
-    configFile = open(cfgPath, "r")
-    lineArray = configFile.read().strip().split("\n")
-    probArr = []
-    probDict = dict()
-    startParsing = False
+def makePDF(hwNum, student, problemDictList):
+    cfgPath = CFG_DIR + "/" + hwNum + "_cfg.json"
 
-    for (i, line) in enumerate(lineArray):
-        if (line == "rl_config"):       # Skip until RL's config lines
-            startParsing = True
-            continue
-        if (startParsing):
-            if ((len(line) == 0) or (line[0] == "#")):
-                continue
-
-            args = line.split()
-            keyword = args[0].lower()
-            if (keyword == "endproblem"):
-                probArr.append(probDict)
-                continue
-            if (keyword == "problem"):
-                probDict = dict()       # New dict to create
-                probDict["number"] = args[1]
-            elif (keyword == "drill"):
-                probDict["drill"] = True if (args[1].lower()=="true") else False
-            elif (keyword == "points"):
-                probDict["points"] = int(args[1])
-            elif (keyword == "files"):
-                if (args[1].lower() == "none"):
-                    probDict["files"] = None
-                else:
-                    probDict["files"] = args[1:]
-
-    # Sort by problem number
-    probArr = sorted(probArr, key=lambda prob: int(prob["number"]))
-    return probArr
-
-def makePDF(hwNum, student):
-    cfgPath = CFG_DIR + "/" + hwNum + ".cfg"
-    probArr = parseRLConfig(cfgPath)
-
-    hw_dict = {'number' : hwNum.replace("hw", ""), 'problems' : probArr,
+    hw_dict = {'number' : hwNum.replace("hw", ""), 'problems' : problemDictList,
                'student' : student}
 
     maker = HW_Code_Maker(**hw_dict)
     maker.make_code()
 
+def makeOpArray(config):
+    opArray = [];
+    # Sort problem config array by problem number
+    config = sorted(config, key=lambda p: p["number"]);
+    for problem in config:
+        if (problem["testFiles"] != None):
+            files = problem["compileFiles"] + problem["testFiles"];
+            if (problem["specificModule"] != None):
+                op = ("t", problem["testFiles"], "m", problem["specificModule"]);
+            else:
+                op = ("t", problem["testFiles"]);
+        elif (problem["compileFiles"] != None):
+            if (problem["specificModule"] != None):
+                op = ("c", problem["compileFiles"], "m", problem["specificModule"]);
+            else:
+                op = ("c", problem["compileFiles"]);
+        elif (problem["files"] != None):
+            op = ("e", problem["files"]);
+        else:
+            continue;
+        opArray.append(op);
+    return opArray;
+
 def main():
-    exitStatus = 0;
     (options, args) = getArgs();
 
     # Save relevant fields
@@ -602,19 +557,23 @@ def main():
     # Initialize variables
     personalOutput = getOutputHeader(hwNum, selfID);
     hasAnyErrors = False;
-    filesToSubmit = [];
-    badFiles = [];
+    filesToSubmit = set();
+    badFiles = set();
 
     # Parse config file and do relevant operations
-    opArray = parseConfig(CFG_DIR + "/" + hwNum + ".cfg");
+    config = parseConfig(CFG_DIR + "/" + hwNum + "_cfg.json");
+    opArray = makeOpArray(config);
+
     for op in opArray:
         (hasErrors, personalOutput) = doOperation(op, personalOutput);
         if (hasErrors):
             hasAnyErrors = True;
-            badFiles.append(op.split()[1]);
+            badFiles = badFiles.union(set(op[1]));
         else:
-            # No errors, so must be a valid file
-            filesToSubmit.append(op.split()[1]);
+            # No errors, so must be valid file(s)
+            filesToSubmit = filesToSubmit.union(set(op[1]));
+    # Remove overlap
+    badFiles = badFiles.difference(filesToSubmit);
 
     # Result strings WITH COLORS \o/
     handinCreated = bcolors.OKGREEN + "Handin complete." + bcolors.ENDC;
@@ -646,14 +605,15 @@ def main():
             print("\n" + handinCreated);
         else:
             print("\n" + handinNotCreated);
+            return 255;
         # Create output PDF
-        makePDF(hwNum, selfID);
+        makePDF(hwNum, selfID, config);
         print("\nCode printout created as " + hwNum + "_code.pdf");
         print(bcolors.WARNING + "Please don't forget to submit this PDF to Gradescope!"
                 + bcolors.ENDC);
+        return 0;
     else:
         print("\n" + handinNotCreated);
-
-    return exitStatus;
+        return 255;
 
 exit(main());
