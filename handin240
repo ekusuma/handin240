@@ -124,7 +124,11 @@ def parseConfig(configPath):
     if (not os.path.exists(configPath)):
         error("no such config file. Are you sure the hw number is correct?", fatal=True);
     configFile = open(configPath, "r");
-    config = json.load(configFile);
+    try:
+        config = json.load(configFile);
+    except Exception, e:
+        print("Error parsing config file:\n{}\n\nPlease contact course staff.".format(e));
+        return None;
     configFile.close();
     return config;
 
@@ -144,21 +148,20 @@ def getOpError(mainFile, errType):
 # Returns a boolean value
 def checkExistence(fileList):
     hasError = False;
+    badFiles = [];
     for f in fileList:
         if (not os.path.exists("./" + f)):
             hasError = True;
-    return hasError;
+            badFiles.append(f);
+        else:
+            print(f + ": file exists, good");
+    if (len(badFiles) == 0):
+        badFiles = None;
+    return (hasError, badFiles);
 
-def checkCompilation(fileList):
+def checkCompilation(fileList, specificModule):
     # Check if we want to compile with specific module
-    useSpecificModule = ("m" in fileList);
-    try:
-        mIndex = fileList.index("m");
-        useSpecificModule = True;
-        moduleName = fileList[mIndex + 1];
-    # Handler char "m" does not exist
-    except ValueError, e:
-        useSpecificModule = False;
+    useSpecificModule = (specificModule != None);
 
     hasError = False;
     # Output should only be not None if there is an error
@@ -185,7 +188,7 @@ def checkCompilation(fileList):
             hasError = True;
             compileOutput = e.output;
         if (not hasError):
-            vcsCmd = ["vcs", "-q", "-sverilog", "-nc", moduleName];
+            vcsCmd = ["vcs", "-q", "-sverilog", "-nc", specificModule];
             try:
                 out = subprocess.check_output(vcsCmd, stderr=FNULL);
             except subprocess.CalledProcessError, e:
@@ -199,6 +202,9 @@ def checkCompilation(fileList):
             hasError = True;
             compileOutput = e.output + "\n";
 
+    if (not hasError):
+        files = ", ".join(fileList).replace("../", "");
+        print(files + ": file(s) compile, good");
     # Cleanup
     FNULL.close();
     os.chdir("..");
@@ -210,54 +216,41 @@ def checkCompilation(fileList):
 def doOperation(op, personalOutput):
     handler = op[0];
     fileList = op[1];
+    if ("m" in op):
+        specModule = op[3];
+    else:
+        specModule = None;
     mainFile = fileList[0];
     hasErrors = False;
 
-    if (handler == "t"):
-        hasErrors = checkExistence(fileList);
+    # Existence check
+    if ((handler == "t") or (handler == "c") or (handler == "e")):
+        (hasErrors, badFiles) = checkExistence(fileList);
         if (hasErrors):
-            output = getOpError(mainFile, ERR_NOEXIST);
-            print(output);
-            personalOutput = personalOutput + output + "\n";
+            for f in badFiles:
+                output = getOpError(f, ERR_NOEXIST);
+                print(output);
+                personalOutput = personalOutput + output + "\n";
             return (hasErrors, personalOutput);
-        (hasErrors, vcsOutput) = checkCompilation(fileList);
+    # Compile check
+    if ((handler == "t") or (handler == "c")):
+        (hasErrors, vcsOutput) = checkCompilation(fileList, specModule);
         if (hasErrors):
-            output = getOpError(mainFile, ERR_NOCOMPILE);
+            files = ", ".join(fileList);
+            output = getOpError(files, ERR_NOCOMPILE);
             print(output + "\n" + vcsOutput);
             personalOutput = personalOutput + output + "\n" + vcsOutput;
             return (hasErrors, personalOutput);
-        #(hasErrors, simOutput) = checkTATB(fileList);
-        #if (hasErrors):
-        #    output = getOpError(mainFile, ERR_FAILTEST);
-        #    print(output + "\n" + simOutput);
-        #    personalOutput = personalOutput + output + "\n" + simOutput;
-        #    return (hasErrors, personalOutput);
-        else:
-            print(mainFile + ": passes TA testbenches, good");
-    elif (handler == "c"):
-        hasErrors = checkExistence(fileList);
-        if (hasErrors):
-            output = getOpError(mainFile, ERR_NOEXIST);
-            print(output);
-            personalOutput = personalOutput + output + "\n";
-            return (hasErrors, personalOutput);
-        (hasErrors, vcsOutput) = checkCompilation(fileList);
-        if (hasErrors):
-            output = getOpError(mainFile, ERR_NOCOMPILE);
-            print(output + "\n" + vcsOutput);
-            personalOutput = personalOutput + output + "\n" + vcsOutput;
-            return (hasErrors, personalOutput);
-        else:
-            print(mainFile + ": file compiles, good");
-    elif (handler == "e"):
-        hasErrors = checkExistence(fileList);
-        if (hasErrors):
-            output = getOpError(mainFile, ERR_NOEXIST);
-            print(output);
-            personalOutput = personalOutput + output + "\n";
-            return (hasErrors, personalOutput);
-        else:
-            print(mainFile + ": file exists, good");
+    # TA testbench check (TODO)
+    #if (handler == "t"):
+    #    (hasErrors, simOutput) = checkTATB(fileList);
+    #    if (hasErrors):
+    #        output = getOpError(mainFile, ERR_FAILTEST);
+    #        print(output + "\n" + simOutput);
+    #        personalOutput = personalOutput + output + "\n" + simOutput;
+    #        return (hasErrors, personalOutput);
+    #    else:
+    #        print(mainFile + ": passes TA testbenches, good");
 
     return (hasErrors, personalOutput);
 
@@ -381,7 +374,7 @@ class HW_Code_Maker:
 
     def make_code(self):
         """ Make the PDF file with all homework code files printed. """
-        filename = 'hw{}_code.pdf'.format(self.hw_number)
+        filename = '{}_code.pdf'.format(self.hw_number)
         self.canvas = canvas.Canvas(filename,
                                     bottomup=0,
                                     pagesize=reportlab.lib.pagesizes.letter)
@@ -548,7 +541,7 @@ class HW_Code_Maker:
 def makePDF(hwNum, student, problemDictList):
     cfgPath = CFG_DIR + "/" + hwNum + "_cfg.json"
 
-    hw_dict = {'number' : hwNum.replace("hw", ""), 'problems' : problemDictList,
+    hw_dict = {'number' : hwNum, 'problems' : problemDictList,
                'student' : student}
 
     maker = HW_Code_Maker(**hw_dict)
@@ -593,6 +586,8 @@ def main():
 
     # Parse config file and do relevant operations
     config = parseConfig(CFG_DIR + "/" + hwNum + "_cfg.json");
+    if (config == None):
+        exit(255);
     opArray = makeOpArray(config);
 
     for op in opArray:
