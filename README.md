@@ -51,6 +51,15 @@ Unfortunately this script must be run *manually*, as currently there is no
 reliable way to facilitate `cron` jobs on AFS. *Just make sure that someone runs
 this whenever a homework deadline is passed.*
 
+#### Granting extensions
+If for whatever reason, some students need an extension, you can reopen their
+handin directories by running:
+```bash
+$ ./extend_handin hwNum studentID1, studentID2, ...
+```
+Note that if you want to extend for all students, just run the `open_handin`
+script again.
+
 ### Creating homework config files
 Homework config files must meet the following requirements:
 - Placed in the directory specified in `env.py`
