@@ -66,6 +66,8 @@ Homework config files must meet the following requirements:
 - Be of `.json` format
 - Be named `hwNum_cfg.json`
 
+As of now, the config folder is located in `/afs/ece.cmu.edu/usr/ekusuma/ece240/handout/hwConfigs`.
+
 The JSON must be an *array* of objects that have the following attributes:
 
 | Attribute        | Type            | Description                                                                                                        |
