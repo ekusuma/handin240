@@ -82,8 +82,9 @@ The handin script will do the following:
 3. Submits all files to your handin directory in AFS.
 4. Creates a PDF of your code **that you must submit to Gradescope**.
 
-To reiterate: **DO NOT FORGET TO SUBMIT THE PDF TO GRADESCOPE!** Otherwise you
-won't receive credit for your code! You'll need to either `scp` or use some
+To reiterate: **DO NOT FORGET TO SUBMIT THE PDF TO GRADESCOPE!** Remember that
+homework assignments have both code *and* a written component. Don't forget, or
+you won't receive credit for your work! You'll need to either `scp` or use some
 other file transfer program to copy the PDF to your machine, so that you can
 submit to Gradescope.
 
