@@ -570,12 +570,19 @@ def makeOpArray(config):
         opArray.append(op);
     return opArray;
 
+def searchCfg(fileName):
+    fileList = os.listdir(CFG_DIR);
+    for f in fileList:
+        if (f.lower() == fileName.lower()):
+            return "{}/{}".format(CFG_DIR, f);
+    error("no config file found. Are you sure the hw number is correct?", True);
+
 def main():
     (options, args) = getArgs();
 
     # Save relevant fields
     isForced = options.force;
-    hwNum = args[0];
+    hwNum = args[0].lower();            # Make case insensitive
     selfID = os.getlogin().lower();     # Get student's Andrew ID
 
     # Initialize variables
@@ -585,6 +592,12 @@ def main():
     badFiles = set();
 
     # Parse config file and do relevant operations
+    cfgPath = searchCfg("{}_cfg.json".format(hwNum));
+    print(cfgPath)
+    # Take the proper (case-sensitive) hwNum
+    print(hwNum)
+    hwNum = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")];
+    print(hwNum)
     config = parseConfig(CFG_DIR + "/" + hwNum + "_cfg.json");
     if (config == None):
         exit(255);
