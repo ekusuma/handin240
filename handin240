@@ -650,6 +650,8 @@ def main():
         print("\nCode printout created as " + hwNum + "_code.pdf");
         print(bcolors.WARNING + "Please don't forget to submit this PDF to Gradescope!"
                 + bcolors.ENDC);
+        print(bcolors.WARNING + "Also don't forget your written homework!"
+                + bcolors.ENDC);
         return 0;
     else:
         print("\n" + handinNotCreated);
