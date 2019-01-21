@@ -80,7 +80,8 @@ The handin script will do the following:
 1. Checks to see that the file exists.
 2. If necessary, checks to see that the file compiles.
 3. Submits all files to your handin directory in AFS.
-4. Creates a PDF of your code **that you must submit to Gradescope**.
+4. Creates a PDF of your code **that you must submit to Gradescope**. The name
+   of this PDF will be `hwNum_code.pdf`.
 
 To reiterate: **DO NOT FORGET TO SUBMIT THE PDF TO GRADESCOPE!** Otherwise you
 won't receive credit for your code! You'll need to either `scp` or use some
