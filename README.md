@@ -8,7 +8,7 @@ This branch contains scripts pertinent for staff workflow:
 1. Creating handin directories for students for a given homework
 2. Close said handin directories
 3. Grant extensions for specific students for a given homework
-4. Create homework configuration files (WIP, still needs to be done)
+4. Create homework configuration files
 
 Written in Python, intended for ver. 2.7.5.
 
