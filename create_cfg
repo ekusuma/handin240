@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # create_cfg.py
 #
-# Utility script to help generate the rl_config for a given homework.
+# Utility script to help generate the config JSON file for a given homework.
 #
 # Usage:
 #   - Run script with the homework number as the argument
@@ -29,6 +29,8 @@ def main():
     cfgPath = CFG_DIR + "/" + hwNum + ".cfg";
     problemNum = 1;
     cfgOut = "rl_config\n";
+
+    print("Creating cfg file for {} in {}".format(hwNum, cfgPath));
 
     while (True):
         config = "";
