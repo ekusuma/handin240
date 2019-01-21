@@ -4,12 +4,14 @@
 # Utility script to help generate the config JSON file for a given homework.
 #
 # Usage:
-#   - Run script with the homework number as the argument
+#   - Run script with the homework number as the argument and follow the
+#     onscreen instructions
 #
 # Edric Kusuma <ekusuma@cmu.edu>
 
 import os;
 import optparse;
+import json;
 
 from env import *;
 
@@ -23,48 +25,136 @@ def getArgs():
         parser.error("Must specify homework number as arg");
     return (options, args);
 
+def printProbSummary(prob):
+    print("\nSummary for Problem {}".format(prob["number"]));
+    print("\tNumber: {}".format(prob["number"]));
+    print("\tDrill: {}".format(prob["drill"]));
+    print("\tPoints: {}".format(prob["points"]));
+    if (prob["files"] == None):
+        print("\tFiles: {}".format(prob["files"]));
+    else:
+        print("\tFiles: {}".format(", ".join(prob["files"])));
+    if (prob["compileFiles"] == None):
+        print("\tFiles: {}".format(prob["compileFiles"]));
+    else:
+        print("\tFiles to compile: {}".format(", ".join(prob["compileFiles"])));
+    #print("\tFiles to test: {}".format(", ".join(prob["testFiles"])));
+    print("\tModule: {}".format(prob["specificModule"]));
+
+def finishConfig(probArr, cfgPath):
+    jsonStr = json.dumps(probArr, indent=4, separators=(',', ': '));
+    fd = open(cfgPath, "w");
+    fd.write(jsonStr);
+    fd.close();
+    print("Config written to {}".format(cfgPath));
+
 def main():
     (options, args) = getArgs();
     hwNum = args[0];
-    cfgPath = CFG_DIR + "/" + hwNum + ".cfg";
-    problemNum = 1;
-    cfgOut = "rl_config\n";
+    cfgPath = CFG_DIR + "/" + hwNum + "_cfg.json";
 
     print("Creating cfg file for {} in {}".format(hwNum, cfgPath));
 
+    probArr = [];
+    configuredProbs = [];
     while (True):
-        config = "";
-        print("Configuring Problem " + str(problemNum) + ":");
-        config += "problem " + str(problemNum) + "\n";
+        madeProbStr = ", ".join(str(n) for n in configuredProbs);
+        print("Configured problem numbers for {}: {}".format(hwNum, madeProbStr));
 
-        print("Type 'stop' to end configuration");
-        isDrill = raw_input("Is it a drill problem (y/n)?: ");
-        if (isDrill == "stop"):
-            break;
-        if (isDrill == "y"):
-            drill = "drill true\n";
-        else:
-            drill = "drill false\n";
-        config += drill;
+        # Pick a problem to configure
+        notDone = True;
+        while (notDone):
+            probNum = raw_input("Please enter a problem number to configure, " +
+                    "type 'exit' to finish configuration, " +
+                    "or 'cancel' to cancel configuration: ").strip();
+            if (probNum.lower() == "exit"):
+                finishConfig(probArr, cfgPath);
+                return 0;
+            elif (probNum.lower() == "cancel"):
+                print("Aborted config for {}.".format(hwNum));
+                return 1;
+            try:
+                probNum = int(probNum);
+                notDone = False;
+            except ValueError:
+                print("Please enter a valid integer.");
+        probReady = False;
+        while (not probReady):
+            print("\nConfiguring problem {}".format(probNum));
+            probObj = dict();
+            probObj["number"] = probNum;
 
-        points = raw_input("How many points?: ");
-        config += "points " + points + "\n";
+            # Configure if problem is a drill problem
+            notDone = True;
+            while (notDone):
+                isDrill = raw_input("Is this a drill problem? [y/n]: ").strip();
+                if ((isDrill.lower() == "y") or (isDrill.lower() == "yes")):
+                    probObj["drill"] = True;
+                    notDone = False;
+                elif ((isDrill.lower() == "n") or (isDrill.lower() == "no")):
+                    probObj["drill"] = False;
+                    notDone = False;
+                else:
+                    print("Please enter yes/y or no/n.");
 
-        files = raw_input("What files (please separate by spaces)? Type 'none' if there are no files for this problem: ");
-        config += "files " + files + "\n";
+            # Configure problem point value
+            notDone = True;
+            while (notDone):
+                points = raw_input("How many points is it worth?: ").strip();
+                try:
+                    probObj["points"] = int(points);
+                    notDone = False;
+                except ValueError:
+                    print("Please enter a valid integer.");
 
-        print(config);
-        answer = raw_input("Is this correct (y/n)?: ");
-        if (answer != "y"):
-            continue;
-        config += "endproblem\n\n"
-        cfgOut += config;
-        problemNum += 1;
+            # Configure file list
+            files = raw_input("What files are needed? Leave empty if no " +
+                "files, or enter a list of files separated by spaces: ").strip();
+            if (files == ""):
+                probObj["files"] = None;
+            else:
+                probObj["files"] = files.split();
 
-    fd = open(cfgPath, "w");
-    fd.write(cfgOut);
-    fd.close();
-    print("Config written to " + cfgPath);
+            compFiles = raw_input("What files should be compiled together? " +
+                "Leave empty if no files, or enter a list of files separated " +
+                "by spaces: ").strip();
+            if (compFiles == ""):
+                probObj["compileFiles"] = None;
+            else:
+                probObj["compileFiles"] = compFiles.split();
+
+            #TODO: implement properly this when TATB functionality is ready
+            probObj["testFiles"] = None;
+
+            # Configure specific module for vLogan compilation
+            specModule = raw_input("Is there a specific module to compile (ie " +
+                "be 'vLogan-ed')? Leave empty if no, or enter the module name: ").strip();
+            if (specModule == ""):
+                probObj["specificModule"] = None;
+            else:
+                probObj["specificModule"] = specModule;
+
+            printProbSummary(probObj);
+
+            # Confirm problem config
+            notDone = True;
+            while (notDone):
+                goodProb = raw_input("Is this correct? [Y/n]: ").strip();
+                if ((goodProb.lower() == "") or (goodProb.lower() == "y") or
+                    (goodProb.lower() == "yes")):
+                    probReady = True;
+                    notDone = False;
+                    print("");
+                elif ((goodProb.lower() == "n" or (goodProb.lower() == "no"))):
+                    notDone = False;
+                    print("");
+                else:
+                    print("Please enter yes/y or no/n.");
+
+            if (probReady):
+                probArr.append(probObj);
+                configuredProbs.append(probNum);
+                configuredProbs.sort();
 
     return 0;
 

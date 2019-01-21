@@ -61,12 +61,24 @@ Note that if you want to extend for all students, just run the `open_handin`
 script again.
 
 ### Creating homework config files
+To prevent typos/headaches with JSON editing, there is a utility script for
+generating handin files:
+```bash
+$ ./create_cfg hwNum
+```
+This will create a file called `hwNum_cfg.json` in the config folder defined in
+`env.py`.
+
+As of now, the config folder is located in `/afs/ece.cmu.edu/class/ee240/handout/hwConfigs`.
+
+#### Config file details
+This section is for the details of how the config file must be formatted. Use
+the associated utility script to prevent mistakes.
+
 Homework config files must meet the following requirements:
 - Placed in the directory specified in `env.py`
 - Be of `.json` format
 - Be named `hwNum_cfg.json`
-
-As of now, the config folder is located in `/afs/ece.cmu.edu/class/ee240/handout/hwConfigs`.
 
 The JSON must be an *array* of objects that have the following attributes:
 
@@ -84,6 +96,3 @@ For the last four attributes, if the attribute does not apply then they may be
 `null`.
 
 See the example file `lib/hw1_cfg.json` in the `master` branch for guidance.
-
-In the future there are plans to create a helper script to make the JSON
-generation much, much easier.
