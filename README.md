@@ -30,8 +30,8 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 
 ## Todos
 ### Overall Todos
-- Write different READMEs for both staff and student branches
-- Get basic setup done in AFS
+- ~~Write different READMEs for both staff and student branches~~
+- ~~Get basic setup done in AFS~~
 - Refactor scripts into object-oriented, for ease of use
 - Define TATB directory and usage
 - ~~Convert Python scripts into executables~~
