@@ -37,6 +37,7 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 - ~~Convert Python scripts into executables~~
 - ~~Edit `.cfg` file spec to match pretty-print code script~~
 ### Staff Todos
+- Add functionality to edit existing cfg files
 - ~~Create script to modify AFS permissions for each student directory~~
 ### Student Todos
 - Implement automatic tester
