@@ -48,6 +48,12 @@ def finishConfig(probArr, cfgPath):
     fd.close();
     print("Config written to {}".format(cfgPath));
 
+def searchForProb(dictArr, value, key="number"):
+    for prob in dictArr:
+        if (prob[key] == value):
+            return prob;
+    return None;
+
 def main():
     (options, args) = getArgs();
     hwNum = args[0];
@@ -75,14 +81,34 @@ def main():
                 return 1;
             try:
                 probNum = int(probNum);
+                existingProb = searchForProb(probArr, probNum);
                 notDone = False;
             except ValueError:
                 print("Please enter a valid integer.");
         probReady = False;
         while (not probReady):
-            print("\nConfiguring problem {}".format(probNum));
-            probObj = dict();
-            probObj["number"] = probNum;
+            if (existingProb == None):
+                print("\nConfiguring problem {}".format(probNum));
+                probObj = dict();
+                probObj["number"] = probNum;
+            else:
+                probObj = existingProb;
+                print("\nProblem {} already configured:".format(probNum));
+                printProbSummary(probObj);
+                notDone = True;
+                while (notDone):
+                    isEdit = raw_input("Edit problem? [Y/n]: ").strip();
+                    if ((isEdit.lower() == "") or (isEdit.lower() == "y") or
+                        (isEdit.lower() == "yes")):
+                        isEdit = True;
+                        notDone = False;
+                    elif ((isEdit.lower() == "n" or (isEdit.lower() == "no"))):
+                        isEdit = False;
+                        notDone = False;
+                    else:
+                        print("Please enter yes/y or no/n.");
+                if (not isEdit):
+                    break;
 
             # Configure if problem is a drill problem
             notDone = True;
@@ -153,8 +179,9 @@ def main():
 
             if (probReady):
                 probArr.append(probObj);
-                configuredProbs.append(probNum);
-                configuredProbs.sort();
+                if (probNum not in configuredProbs):
+                    configuredProbs.append(probNum);
+                    configuredProbs.sort();
 
     return 0;
 
