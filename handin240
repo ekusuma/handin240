@@ -277,6 +277,20 @@ def getOutputHeader(hwNum, studentID):
     outputHeader += HEADER_LINE;
     return outputHeader;
 
+def checkFs(studentID, studentDir):
+    fsCmd = ["fs", "la", studentDir];
+    perms = subprocess.check_output(fsCmd).split();
+    try:
+        idIndex = perms.index(studentID);
+        selfPerms = perms[idIndex:];
+    except ValueError:
+        error("unable to figure out student permissions for handin dir. " +
+              "Please contact course staff if the problem persists.");
+        return False;
+
+    # Has write permissions
+    return "rlidwk" in selfPerms[1];
+
 # Returns True on success, False on failure
 def doHandin(hwNum, studentID, filesToSubmit, badFiles=None):
     studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID;
@@ -286,6 +300,13 @@ def doHandin(hwNum, studentID, filesToSubmit, badFiles=None):
         reason = "your handin directory was not found. Are you sure you are " + \
                  "enrolled? Please contact course staff if the problem persists.";
         print("");
+        error(reason);
+        return False;
+    goodPerms = checkFs(studentID, studentDir);
+    if (not goodPerms):
+        reason = "access to handin directory denied. Are you ";
+        reason += "trying to submit past the deadline? If not, please contact ";
+        reason += "course staff.";
         error(reason);
         return False;
 
