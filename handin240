@@ -668,7 +668,7 @@ def main():
             return 255;
         # Create output PDF
         makePDF(hwNum, selfID, config);
-        print("\nCode printout created as " + hwNum + "_code.pdf");
+        print("\nCode printout created as {}_code.pdf. {}Please check that there are no errors in the PDF.{}".format(hwNum, bcolors.WARNING, bcolors.ENDC));
         print(bcolors.WARNING + "Please don't forget to submit this PDF to Gradescope!"
                 + bcolors.ENDC);
         print(bcolors.WARNING + "Also don't forget your written homework!"
