@@ -40,6 +40,8 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 - Add functionality to edit existing cfg files
 - ~~Create script to modify AFS permissions for each student directory~~
 ### Student Todos
+- Stop being lazy and actually document code
+- Implement a "dry run" feature that just does error checks
 - Implement automatic tester
 - ~~Error handling when necessary files do not exist~~
 - ~~Check if script works if files are within STAFF directory~~ Nope, we'll have
