@@ -23,7 +23,7 @@ import optparse;
 import subprocess;
 import json;
 
-import reportlab, os
+import reportlab
 
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -44,61 +44,65 @@ class bcolors:
     ENDC = "\033[0m";
     BOLD = "\033[1m";
     UNDERLINE = "\033[4m";
+################################################################################
+
+# A line of 80 *'s, to mark beginning and end of a header
+HEADER_LEN = 80;
+HEADER_LINE = "*" * HEADER_LEN + "\n";
 
 # Some useful constants in the scope of this script
 ERR_NOEXIST     = 0;
 ERR_NOCOMPILE   = 1;
 ERR_FAILTEST    = 2;
 
-# A line of 80 *'s, to mark beginning and end of a header
-HEADER_LEN = 80;
-HEADER_LINE = "*" * HEADER_LEN + "\n";
-
 ################################################################################
 #                           Code for the handin script                         #
 ################################################################################
 
-# Generic error handler. If fatal is true, then the error will cause the program
-# to terminate. Note that if cleanup is necessary in the case of an error (i.e.
-# deleting temporary directories), then fatal should be set to false.
-#
-# Args:
-#   message (string):
-#       A message that describes the error.
-#   fatal (bool):
-#       Whether or not the message is fatal (and therefore will exit rather than
-#       return).
-#
-# Returns:
-#   (int):
-#       A non-zero exit code, to signify an error.
 def error(message, fatal=False):
+    """Generic error handler.
+
+    If fatal is true, then the error will cause the program to terminate.
+        Note that if cleanup is necessary in the case of an error (i.e. deleting
+        temporary directories), then fatal should be set to false.
+
+    Args:
+        message (string): A message that describes the error.
+        fatal (bool): Whether or not the message is fatal (and therefore will
+            exit rather than return).
+
+    Returns:
+        (int): A non-zero exit code, to signify an error.
+
+    """
     print(bcolors.FAIL + "ERROR: " + bcolors.ENDC + message);
     if (fatal):
         exit(255);
     else:
         return 255;
 
-# Generic warning handler.
-#
-# Args:
-#   message (string):
-#       A message that describes the warning.
-#
-# No return value.
 def warning(message):
+    """Generic warning handler.
+
+    Args:
+        message (string): A message that describes the warning.
+
+    Returns:
+        Nothing
+
+    """
     print(bcolors.WARNING + "WARNING: " +bcolors.ENDC + message);
 
-# Used to write a line in the header for the errors.log file.
-#
-# Args:
-#   header (string):
-#       Text to write in one line of the header.
-#
-# Returns:
-#   (string):
-#       Formatted header line string.
 def writeHeaderLine(header):
+    """Used to write a line in the header for the errors.log file.
+
+    Args:
+        header (string): Text to write in one line of the header.
+
+    Returns:
+        (string): Formatted header line string.
+
+    """
     maxLen = HEADER_LEN - 2;    # Beginning and ending "*"
     remaining = maxLen - len(header);
     firstHalf = remaining // 2;
@@ -106,9 +110,19 @@ def writeHeaderLine(header):
     headerLine = "*" + (" " * firstHalf) + header + (" " * secondHalf) + "*" + "\n";
     return headerLine;
 
-# Returns a tuple of (options, args) parsed from the command line.
-# Raises an error (and exits) if no arg for hwNum is given.
 def getArgs():
+    """Uses optparse to get script options and args from command line.
+    Raises an error (and exits) if no arg for hwNum is given.
+
+    Args:
+        Nothing
+
+    Returns:
+        (obj): An optparse object whose attributes correspond to the options
+            defined via add_option().
+        (arr): Array of strings, the args of the command line call.
+
+    """
     usage = "usage: %prog [-f] hwNum";
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-f", "--force", action="store_true", dest="force",
@@ -118,9 +132,24 @@ def getArgs():
         parser.error("Must specify homework number as arg");
     return (options, args);
 
-# Parses the hw config JSON and returns a dict with the JS object attributes as
-# keys. See the README for how config files must be defined.
 def parseConfig(configPath):
+    """Parses the config JSON file. See README for how these config files must
+    be formatted/defined as.
+
+    Raises a fatal error if the path is invalid.
+
+    Args:
+        configPath (str): A path leading to the config JSON file. Must be a
+            .json file.
+
+    Returns:
+        On success:
+            (dict): A dictionary that has the parsed JSON mapped onto it. See
+                the json module for details on how this is defined.
+        On error:
+            (None)
+
+    """
     if (not os.path.exists(configPath)):
         error("no such config file. Are you sure the hw number is correct?", fatal=True);
     configFile = open(configPath, "r");
@@ -132,9 +161,18 @@ def parseConfig(configPath):
     configFile.close();
     return config;
 
-# Returns a string that is an error message formatted as:
-#       fileName: errorType
 def getOpError(mainFile, errType):
+    """Create a formatted error message depending on what was wrong with the
+    file.
+
+    Args:
+        mainFile (str): Name of a bad file.
+        errType (int): Error type to classify problem with file.
+
+    Returns:
+        (str): Formatted string to display as an error.
+
+    """
     if (errType == ERR_NOEXIST):
         errMessage = "file does not exist";
     elif (errType == ERR_NOCOMPILE):
