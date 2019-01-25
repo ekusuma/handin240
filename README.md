@@ -47,6 +47,10 @@ the following:
 ```bash
 $ ./close_handin hwNum
 ```
+The script will also run the handin on all of the students' directories to
+generate an `errors.log` file, to make things easier on the grading TA. There
+will also be a summary file in `$STAFF_DIR/handinResults/hwNum_results.txt`.
+
 Unfortunately this script must be run *manually*, as currently there is no
 reliable way to facilitate `cron` jobs on AFS. *Just make sure that someone runs
 this whenever a homework deadline is passed.*
