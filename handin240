@@ -61,6 +61,159 @@ ERR_FAILTEST    = 2;
 #                           Code for the handin script                         #
 ################################################################################
 
+class Operation:
+    def __init__(self):
+        self.number = None;
+        self.existFiles = None;
+        self.compileFiles = None;
+        self.testFiles = None;
+        self.specificModule = None;
+        self.hasErrors = False;
+        self.err = "";
+
+    def parseProblem(self, p):
+        if (p["number"] != None):
+            self.number = p["number"];
+        if (p["files"] != None):
+            self.existFiles = p["files"];
+        if (p["compileFiles"] != None):
+            self.compileFiles = p["compileFiles"];
+        if (p["testFiles"] != None):
+            self.testFiles = p["testFiles"];
+        if (p["specificModule"] != None):
+            self.specificModule = p["specificModule"];
+
+    def getOpError(self, mainFile, errType):
+        """Create a formatted error message depending on what was wrong with the
+        file.
+
+        Args:
+            mainFile (str): Name of a bad file.
+            errType (int): Error type to classify problem with file.
+
+        Returns:
+            (str): Formatted string to display as an error.
+
+        """
+        if (errType == ERR_NOEXIST):
+            errMessage = "file does not exist";
+        elif (errType == ERR_NOCOMPILE):
+            errMessage = "failed to compile";
+        elif (errType == ERR_FAILTEST):
+            errMessage = "failed TA testbench";
+        else:
+            errMessage = "unspecified error"
+        return mainFile + ": " + bcolors.FAIL + errMessage + bcolors.ENDC;
+
+    def checkExistence(self):
+        """Checks if every file in a file list exists within the current
+        directory. Also lists what files do not exist, if any.
+
+        Args:
+
+        Returns:
+
+        """
+        for f in self.existFiles:
+            if (not os.path.exists("./" + f)):
+                self.hasErrors = True;
+                error = self.getOpError(f, ERR_NOEXIST) + "\n";
+                print(error.strip());
+                self.err += error;
+            else:
+                print(f + ": file exists, good");
+
+    def checkCompilation(self):
+        """Tries to compile files from a list using VCS (or vLogan+VCS), and
+        checks to see if any compilation errors arise.
+
+        Utilizes a temporary directory called `temp240handin`. As of now, this
+        function will actually overwrite that directory if it already exists, so
+        hope that the user doesn't have a folder with that name.
+
+        If there is an error, it will also print the compiler message to stdout.
+
+        Args:
+
+        Returns:
+
+        """
+        # Just in case something failed before, clean up old dir if it exists
+        #   Ignore errors because they might not have the directory
+        shutil.rmtree("./temp240handin", ignore_errors=True);
+        # Create temporary directory for compilation files, and cd into it
+        os.mkdir("./temp240handin");
+        os.chdir("./temp240handin");
+
+        # Actual files are located a folder up, so:
+        fileList = [];
+        for fileName in self.compileFiles:
+            fileList.append("../" + fileName);  # Add "../" prefix to all files
+
+        # TODO: find some way to suppress output for errors
+        if (self.specificModule != None):
+            # Command to run vlogan with files
+            vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
+            try:
+                out = subprocess.check_output(vloganCmd);
+            except subprocess.CalledProcessError, e:
+                self.hasErrors = True;
+                files = ", ".join(fileList).replace("../", "");
+                error = self.getOpError(files, ERR_NOCOMPILE) + "\n";
+                print(error.strip());
+                self.err += error;
+                self.err += e.output + "\n";
+            # Should only progress to VCS compilation if no errors
+            if (not self.hasErrors):
+                vcsCmd = ["vcs", "-q", "-sverilog", "-nc", self.specificModule];
+                try:
+                    out = subprocess.check_output(vcsCmd);
+                except subprocess.CalledProcessError, e:
+                    self.hasErrors = True;
+                    files = ", ".join(fileList).replace("../", "");
+                    error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
+                    print(error.strip());
+                    self.err += error;
+                    self.err += e.output + "\n";
+        else:
+            vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList;
+            try:
+                out = subprocess.check_output(vcsCmd);
+            except subprocess.CalledProcessError, e:
+                self.hasErrors = True;
+                files = ", ".join(fileList).replace("../", "");
+                error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
+                print(error.strip());
+                self.err += error;
+                self.err += e.output + "\n";
+        if (not self.hasErrors):
+            files = ", ".join(fileList).replace("../", "");
+            print(files + ": file(s) compile, good");
+
+        # Cleanup
+        os.chdir("..");
+        shutil.rmtree("./temp240handin");
+
+    # TODO: checkTATB()
+
+    def do(self):
+        """Performs an operation based on the op's attributes.
+
+        Args:
+
+        Returns:
+
+        """
+        if (self.existFiles != None):
+            self.checkExistence();
+            if (self.hasErrors):
+                return self.err + "\n";
+        if (self.compileFiles != None):
+            self.checkCompilation();
+            if (self.hasErrors):
+                return self.err + "\n";
+        return "";
+
 def error(message, fatal=False):
     """Generic error handler.
 
@@ -95,7 +248,7 @@ def warning(message):
     """
     print(bcolors.WARNING + "WARNING: " +bcolors.ENDC + message);
 
-def writeHeaderLine(header):
+def writeHeaderLine(header, filled=False):
     """Used to write a line in the header for the errors.log file.
 
     Args:
@@ -106,10 +259,16 @@ def writeHeaderLine(header):
 
     """
     maxLen = HEADER_LEN - 2;    # Beginning and ending "*"
+    header = " " + header + " ";
     remaining = maxLen - len(header);
     firstHalf = remaining // 2;
     secondHalf = remaining - firstHalf;
-    headerLine = "*" + (" " * firstHalf) + header + (" " * secondHalf) + "*" + "\n";
+    if (filled):
+        filler = "*";
+    else:
+        filler = " ";
+    headerLine = "*" + (filler * firstHalf) + header + (filler * secondHalf) + \
+                 "*" + "\n";
     return headerLine;
 
 def getArgs():
@@ -163,137 +322,6 @@ def parseConfig(configPath):
     configFile.close();
     return config;
 
-def getOpError(mainFile, errType):
-    """Create a formatted error message depending on what was wrong with the
-    file.
-
-    Args:
-        mainFile (str): Name of a bad file.
-        errType (int): Error type to classify problem with file.
-
-    Returns:
-        (str): Formatted string to display as an error.
-
-    """
-    if (errType == ERR_NOEXIST):
-        errMessage = "file does not exist";
-    elif (errType == ERR_NOCOMPILE):
-        errMessage = "failed to compile";
-    elif (errType == ERR_FAILTEST):
-        errMessage = "failed TA testbench";
-    else:
-        errMessage = "unspecified error"
-    return mainFile + ": " + bcolors.FAIL + errMessage + bcolors.ENDC;
-
-# Returns a boolean value
-def checkExistence(fileList):
-    hasError = False;
-    badFiles = [];
-    for f in fileList:
-        if (not os.path.exists("./" + f)):
-            hasError = True;
-            badFiles.append(f);
-        else:
-            print(f + ": file exists, good");
-    if (len(badFiles) == 0):
-        badFiles = None;
-    return (hasError, badFiles);
-
-def checkCompilation(fileList, specificModule):
-    # Check if we want to compile with specific module
-    useSpecificModule = (specificModule != None);
-
-    hasError = False;
-    # Output should only be not None if there is an error
-    compileOutput = None;
-    # Just in case something failed before, clean up old temp240 if it exists
-    shutil.rmtree("./temp240", ignore_errors=True);
-    # Create temporary directory for compilation files
-    os.mkdir("./temp240");
-    os.chdir("./temp240");
-    # For hiding compilation output
-    FNULL = open(os.devnull, "w");
-    oldFileList = list(fileList);
-    # Add "../" prefix to all files
-    fileList = [];
-    for fileName in oldFileList:
-        fileList.append("../" + fileName);
-
-    # TODO: find some way to suppress output for errors
-    if (useSpecificModule):
-        vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
-        try:
-            out = subprocess.check_output(vloganCmd, stderr=FNULL);
-        except subprocess.CalledProcessError, e:
-            hasError = True;
-            compileOutput = e.output;
-        if (not hasError):
-            vcsCmd = ["vcs", "-q", "-sverilog", "-nc", specificModule];
-            try:
-                out = subprocess.check_output(vcsCmd, stderr=FNULL);
-            except subprocess.CalledProcessError, e:
-                hasError = True;
-                compileOutput = e.output + "\n";
-    else:
-        vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList;
-        try:
-            out = subprocess.check_output(vcsCmd, stderr=FNULL);
-        except subprocess.CalledProcessError, e:
-            hasError = True;
-            compileOutput = e.output + "\n";
-
-    if (not hasError):
-        files = ", ".join(fileList).replace("../", "");
-        print(files + ": file(s) compile, good");
-    # Cleanup
-    FNULL.close();
-    os.chdir("..");
-    shutil.rmtree("./temp240");
-    return (hasError, compileOutput);
-
-# TODO: checkTATB()
-
-def doOperation(op, personalOutput):
-    handler = op[0];
-    fileList = op[1];
-    if ("m" in op):
-        specModule = op[3];
-    else:
-        specModule = None;
-    mainFile = fileList[0];
-    hasErrors = False;
-
-    # Existence check
-    if ((handler == "t") or (handler == "c") or (handler == "e")):
-        (hasErrors, badFiles) = checkExistence(fileList);
-        if (hasErrors):
-            for f in badFiles:
-                output = getOpError(f, ERR_NOEXIST);
-                print(output);
-                personalOutput = personalOutput + output + "\n";
-            return (hasErrors, personalOutput);
-    # Compile check
-    if ((handler == "t") or (handler == "c")):
-        (hasErrors, vcsOutput) = checkCompilation(fileList, specModule);
-        if (hasErrors):
-            files = ", ".join(fileList);
-            output = getOpError(files, ERR_NOCOMPILE);
-            print(output + "\n" + vcsOutput);
-            personalOutput = personalOutput + output + "\n" + vcsOutput;
-            return (hasErrors, personalOutput);
-    # TA testbench check (TODO)
-    #if (handler == "t"):
-    #    (hasErrors, simOutput) = checkTATB(fileList);
-    #    if (hasErrors):
-    #        output = getOpError(mainFile, ERR_FAILTEST);
-    #        print(output + "\n" + simOutput);
-    #        personalOutput = personalOutput + output + "\n" + simOutput;
-    #        return (hasErrors, personalOutput);
-    #    else:
-    #        print(mainFile + ": passes TA testbenches, good");
-
-    return (hasErrors, personalOutput);
-
 def createErrLog(contents, path="."):
     fd = open(path + "/errors.log", "w");
 
@@ -332,7 +360,7 @@ def checkFs(studentID, studentDir):
     return "rlidwk" in selfPerms[1];
 
 # Returns True on success, False on failure
-def doHandin(hwNum, studentID, filesToSubmit, badFiles=None):
+def doHandin(hwNum, studentID, filesToSubmit):
     studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID;
 
     # Check if student exists in handin directory
@@ -354,19 +382,8 @@ def doHandin(hwNum, studentID, filesToSubmit, badFiles=None):
         path = "./" + fileName;
         # Since these files passed the check, they should exist, but just in case
         if (not os.path.exists(path)):
-            error("File " + fileName + " does not exist. File not copied.");
+            continue;
         shutil.copy(path, studentDir);
-    if (badFiles != None):
-        badFilesDir = studentDir + "/badFiles";
-        if (not os.path.exists(badFilesDir)):
-            os.mkdir(badFilesDir);
-        shutil.copy("./errors.log", badFilesDir);
-        for fileName in badFiles:
-            path = "./" + fileName;
-            # This handles the case where file does not exist
-            if (not os.path.exists(path)):
-                continue;
-            shutil.copy(path, badFilesDir);
 
     return True;
 
@@ -613,21 +630,8 @@ def makeOpArray(config):
     # Sort problem config array by problem number
     config = sorted(config, key=lambda p: p["number"]);
     for problem in config:
-        if (problem["testFiles"] != None):
-            files = problem["compileFiles"] + problem["testFiles"];
-            if (problem["specificModule"] != None):
-                op = ("t", problem["testFiles"], "m", problem["specificModule"]);
-            else:
-                op = ("t", problem["testFiles"]);
-        elif (problem["compileFiles"] != None):
-            if (problem["specificModule"] != None):
-                op = ("c", problem["compileFiles"], "m", problem["specificModule"]);
-            else:
-                op = ("c", problem["compileFiles"]);
-        elif (problem["files"] != None):
-            op = ("e", problem["files"]);
-        else:
-            continue;
+        op = Operation();
+        op.parseProblem(problem);
         opArray.append(op);
     return opArray;
 
@@ -650,7 +654,6 @@ def main():
     personalOutput = getOutputHeader(hwNum, selfID);
     hasAnyErrors = False;
     filesToSubmit = set();
-    badFiles = set();
 
     # Parse config file and do relevant operations
     cfgPath = searchCfg("{}_cfg.json".format(hwNum));
@@ -662,15 +665,13 @@ def main():
     opArray = makeOpArray(config);
 
     for op in opArray:
-        (hasErrors, personalOutput) = doOperation(op, personalOutput);
-        if (hasErrors):
+        if (op.existFiles != None):
+            filesToSubmit = filesToSubmit.union(set(op.existFiles));
+        errString = op.do();
+        if (op.hasErrors):
             hasAnyErrors = True;
-            badFiles = badFiles.union(set(op[1]));
-        else:
-            # No errors, so must be valid file(s)
-            filesToSubmit = filesToSubmit.union(set(op[1]));
-    # Remove overlap
-    badFiles = badFiles.difference(filesToSubmit);
+            personalOutput += writeHeaderLine("Problem {}".format(op.number), True);
+            personalOutput += errString;
 
     # Result strings WITH COLORS \o/
     handinCreated = bcolors.OKGREEN + "Handin complete." + bcolors.ENDC;
@@ -678,8 +679,6 @@ def main():
 
     attemptHandin = True;
     # Check if handin had any errors
-    if (len(badFiles) < 1):
-        badFiles = None;
     if (hasAnyErrors):
         warning = bcolors.WARNING + "WARNING: " + bcolors.ENDC;
         print("\n" + warning + "errors detected! See errors.log for details.\n");
@@ -697,7 +696,7 @@ def main():
                 attemptHandin = False;
 
     if (attemptHandin):
-        handinSuccessful = doHandin(hwNum, selfID, filesToSubmit, badFiles);
+        handinSuccessful = doHandin(hwNum, selfID, filesToSubmit);
         if (handinSuccessful):
             print("\n" + handinCreated);
         else:
@@ -705,7 +704,9 @@ def main():
             return 255;
         # Create output PDF
         makePDF(hwNum, selfID, config);
-        print("\nCode printout created as {}_code.pdf. {}Please check that there are no errors in the PDF.{}".format(hwNum, bcolors.WARNING, bcolors.ENDC));
+        formatStr = "\nCode printout created as {}_code.pdf. Please check ";
+        formatStr += "that there are no errors in the PDF.";
+        print(formatStr.format(hwNum));
         print(bcolors.WARNING + "Please don't forget to submit this PDF to Gradescope!"
                 + bcolors.ENDC);
         print(bcolors.WARNING + "Also don't forget your written homework!"
