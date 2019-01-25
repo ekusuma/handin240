@@ -13,7 +13,175 @@
 import optparse;
 import os;
 import subprocess;
+import json;
+import shutil;
+import sys;
 from env import *;
+
+###################### Some cool output formatting stuff #######################
+class bcolors:
+    HEADER = "\033[95m";
+    OKBLUE = "\033[94m";
+    OKGREEN = "\033[92m";
+    WARNING = "\033[93m";
+    FAIL = "\033[91m";
+    ENDC = "\033[0m";
+    BOLD = "\033[1m";
+    UNDERLINE = "\033[4m";
+################################################################################
+
+# Some useful constants in the scope of this script
+ERR_NOEXIST     = 0;
+ERR_NOCOMPILE   = 1;
+ERR_FAILTEST    = 2;
+
+class Operation:
+    def __init__(self):
+        self.number = None;
+        self.existFiles = None;
+        self.compileFiles = None;
+        self.testFiles = None;
+        self.specificModule = None;
+        self.hasErrors = False;
+        self.err = "";
+
+    def clearErrors(self):
+        self.hasErrors = False;
+        self.err = "";
+
+    def parseProblem(self, p):
+        if (p["number"] != None):
+            self.number = p["number"];
+        if (p["files"] != None):
+            self.existFiles = p["files"];
+        if (p["compileFiles"] != None):
+            self.compileFiles = p["compileFiles"];
+        if (p["testFiles"] != None):
+            self.testFiles = p["testFiles"];
+        if (p["specificModule"] != None):
+            self.specificModule = p["specificModule"];
+
+    def getOpError(self, mainFile, errType):
+        """Create a formatted error message depending on what was wrong with the
+        file.
+
+        Args:
+            mainFile (str): Name of a bad file.
+            errType (int): Error type to classify problem with file.
+
+        Returns:
+            (str): Formatted string to display as an error.
+
+        """
+        if (errType == ERR_NOEXIST):
+            errMessage = "file does not exist";
+        elif (errType == ERR_NOCOMPILE):
+            errMessage = "failed to compile";
+        elif (errType == ERR_FAILTEST):
+            errMessage = "failed TA testbench";
+        else:
+            errMessage = "unspecified error"
+        return mainFile + ": " + bcolors.FAIL + errMessage + bcolors.ENDC;
+
+    def checkExistence(self):
+        """Checks if every file in a file list exists within the current
+        directory. Also lists what files do not exist, if any.
+
+        Args:
+
+        Returns:
+
+        """
+        for f in self.existFiles:
+            if (not os.path.exists("./" + f)):
+                self.hasErrors = True;
+                error = self.getOpError(f, ERR_NOEXIST) + "\n";
+                self.err += error;
+
+    def checkCompilation(self):
+        """Tries to compile files from a list using VCS (or vLogan+VCS), and
+        checks to see if any compilation errors arise.
+
+        Utilizes a temporary directory called `temp240handin`. As of now, this
+        function will actually overwrite that directory if it already exists, so
+        hope that the user doesn't have a folder with that name.
+
+        If there is an error, it will also print the compiler message to stdout.
+
+        Args:
+
+        Returns:
+
+        """
+        # Just in case something failed before, clean up old dir if it exists
+        #   Ignore errors because they might not have the directory
+        shutil.rmtree("./temp240handin", ignore_errors=True);
+        # Create temporary directory for compilation files, and cd into it
+        os.mkdir("./temp240handin");
+        os.chdir("./temp240handin");
+
+        # Actual files are located a folder up, so:
+        fileList = [];
+        for fileName in self.compileFiles:
+            fileList.append("../" + fileName);  # Add "../" prefix to all files
+
+        # TODO: find some way to suppress output for errors
+        if (self.specificModule != None):
+            # Command to run vlogan with files
+            vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
+            try:
+                out = subprocess.check_output(vloganCmd);
+            except subprocess.CalledProcessError, e:
+                self.hasErrors = True;
+                files = ", ".join(fileList).replace("../", "");
+                error = self.getOpError(files, ERR_NOCOMPILE) + "\n";
+                self.err += error;
+                self.err += e.output + "\n";
+            # Should only progress to VCS compilation if no errors
+            if (not self.hasErrors):
+                vcsCmd = ["vcs", "-q", "-sverilog", "-nc", self.specificModule];
+                try:
+                    out = subprocess.check_output(vcsCmd);
+                except subprocess.CalledProcessError, e:
+                    self.hasErrors = True;
+                    files = ", ".join(fileList).replace("../", "");
+                    error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
+                    self.err += error;
+                    self.err += e.output + "\n";
+        else:
+            vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList;
+            try:
+                out = subprocess.check_output(vcsCmd);
+            except subprocess.CalledProcessError, e:
+                self.hasErrors = True;
+                files = ", ".join(fileList).replace("../", "");
+                error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
+                self.err += error;
+                self.err += e.output + "\n";
+
+        # Cleanup
+        os.chdir("..");
+        shutil.rmtree("./temp240handin");
+
+    # TODO: checkTATB()
+
+    def do(self):
+        """Performs an operation based on the op's attributes.
+
+        Args:
+
+        Returns:
+
+        """
+        if (self.existFiles != None):
+            self.checkExistence();
+            if (self.hasErrors):
+                return self.err + "\n";
+        if (self.compileFiles != None):
+            self.checkCompilation();
+            if (self.hasErrors):
+                return self.err + "\n";
+        return "";
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
@@ -23,6 +191,10 @@ def getArgs():
     if (len(args) != 1):
         parser.error("Must specify homework number as arg");
     return (options, args);
+
+################################################################################
+#                             Code for closing dirs                            #
+################################################################################
 
 # Sets AFS permissions such that the student may no longer write to the directory
 def closeStudentPerms(studentID, path):
@@ -63,9 +235,161 @@ def closeStudentDirs(basePath, dirs):
     if (len(badIDs) != 0):
         printBadIDs(badIDs);
 
+################################################################################
+#                        Code for checking compilation                         #
+################################################################################
+
+def writeHeaderLine(header, filled=False):
+    """Used to write a line in the header for the errors.log file.
+
+    Args:
+        header (string): Text to write in one line of the header.
+
+    Returns:
+        (string): Formatted header line string.
+
+    """
+    HEADER_LEN = 80;
+    maxLen = HEADER_LEN - 2;    # Beginning and ending "*"
+    header = " " + header + " ";
+    remaining = maxLen - len(header);
+    firstHalf = remaining // 2;
+    secondHalf = remaining - firstHalf;
+    if (filled):
+        filler = "*";
+    else:
+        filler = " ";
+    headerLine = "*" + (filler * firstHalf) + header + (filler * secondHalf) + \
+                 "*" + "\n";
+    return headerLine;
+
+def getOutputHeader(hwNum, studentID):
+    HEADER_LINE = 80 * "*" + "\n";
+    outputHeader = HEADER_LINE;
+    outputHeader += writeHeaderLine("18240: " + hwNum);
+    outputHeader += writeHeaderLine("Error log for: " + studentID);
+    outputHeader += HEADER_LINE;
+    return outputHeader;
+
+def parseConfig(configPath):
+    """Parses the config JSON file. See README for how these config files must
+    be formatted/defined as.
+
+    Raises a fatal error if the path is invalid.
+
+    Args:
+        configPath (str): A path leading to the config JSON file. Must be a
+            .json file.
+
+    Returns:
+        On success:
+            (dict): A dictionary that has the parsed JSON mapped onto it. See
+                the json module for details on how this is defined.
+        On error:
+            (None)
+
+    """
+    if (not os.path.exists(configPath)):
+        error("no such config file. Are you sure the hw number is correct?", fatal=True);
+    configFile = open(configPath, "r");
+    try:
+        config = json.load(configFile);
+    except Exception, e:
+        print("Error parsing config file:\n{}\n\nPlease contact course staff.".format(e));
+        return None;
+    configFile.close();
+    return config;
+
+def makeOpArray(config):
+    opArray = [];
+    # Sort problem config array by problem number
+    config = sorted(config, key=lambda p: p["number"]);
+    for problem in config:
+        op = Operation();
+        op.parseProblem(problem);
+        opArray.append(op);
+    return opArray;
+
+def searchCfg(fileName):
+    fileList = os.listdir(CFG_DIR);
+    for f in fileList:
+        if (f.lower() == fileName.lower()):
+            return "{}/{}".format(CFG_DIR, f);
+    error("no config file found. Are you sure the hw number is correct?", True);
+
+def stripFormatting(s):
+    contents = s;
+
+    # Remove formatting characters
+    contents = contents.replace(bcolors.HEADER, "");
+    contents = contents.replace(bcolors.OKBLUE, "");
+    contents = contents.replace(bcolors.OKGREEN, "");
+    contents = contents.replace(bcolors.WARNING, "");
+    contents = contents.replace(bcolors.FAIL, "");
+    contents = contents.replace(bcolors.ENDC, "");
+    contents = contents.replace(bcolors.BOLD, "");
+    contents = contents.replace(bcolors.UNDERLINE, "");
+
+    return contents;
+
+def createErrLog(contents, path="."):
+    fd = open(path + "/errors.log", "w");
+    toWrite = stripFormatting(contents);
+    fd.write(toWrite);
+    fd.close();
+
+def checkStudent(studentDir, opArray, hwNum):
+    personalOutput = getOutputHeader(hwNum, studentDir);
+    hasAnyErrors = False;
+    os.chdir(studentDir);
+    for op in opArray:
+        op.clearErrors();
+        errString = op.do();
+        if (op.hasErrors):
+            hasAnyErrors = True
+            personalOutput += writeHeaderLine("Problem {}".format(op.number), True);
+            personalOutput += errString;
+    if (hasAnyErrors):
+        createErrLog(personalOutput);
+
+    os.chdir("../");
+    return (hasAnyErrors, personalOutput);
+
+def writeResults(hwNum, strArr):
+    path = "{}/handinResults/{}_results.txt".format(STAFF_DIR, hwNum);
+    if (len(strArr) < 1):
+        return;
+    fd = open(path, "w");
+    toWrite = "\n\n".join(strArr);
+    toWrite = stripFormatting(toWrite);
+    fd.write(toWrite);
+    fd.close();
+    print("Errored students written to {}".format(path));
+
+def checkStudents(handinDir, studentList, hwNum):
+    # Parse config file and do relevant operations
+    cfgPath = searchCfg("{}_cfg.json".format(hwNum));
+    # Take the proper (case-sensitive) hwNum
+    hwNum = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")];
+    config = parseConfig(CFG_DIR + "/" + hwNum + "_cfg.json");
+    if (config == None):
+        exit(255);
+    opArray = makeOpArray(config);
+    oldCwd = os.getcwd();
+    os.chdir(handinDir);
+
+    errorStudents = [];
+    for student in studentList:
+        hasErrors = False;
+        (hasErrors, errOut) = checkStudent(student, opArray, hwNum);
+        if (hasErrors):
+            errorStudents.append(errOut);
+    os.chdir(oldCwd);
+    return errorStudents;
+
 def main():
     (options, args) = getArgs();
-    hwNum = args[0];
+    hwNum = args[0].lower();
 
     handinDir = HANDIN_DIR + "/" + hwNum;
     print("Closing handin directories in " + handinDir);
@@ -73,10 +397,21 @@ def main():
         print("\n" + hwNum + " handin directory does not exist.");
         exit(255);
     fileList = os.listdir(handinDir);
+    dirList = [];
+    for f in fileList:
+        if (os.path.isdir(handinDir + "/" + f)):
+            dirList.append(f);
 
-    closeStudentDirs(handinDir, fileList);
+    closeStudentDirs(handinDir, dirList);
+    print("\n{}Handin directories closed.{}".format(bcolors.OKGREEN, bcolors.ENDC));
 
-    print("\nHandin directories closed.");
+    sys.stdout.write("\nChecking handins for all students...");
+    sys.stdout.flush();
+    errorStudents = checkStudents(handinDir, dirList, hwNum);
+    sys.stdout.write("done\n");
+    sys.stdout.flush();
+    writeResults(hwNum, errorStudents);
+
     return 0;
 
 exit(main());
