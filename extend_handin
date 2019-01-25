@@ -41,6 +41,7 @@ def getArgs():
 # Sets AFS permissions such that the student may write to the directory
 # Admins have usual admin permissions, and other students may not access
 def setStudentPerms(studentID, path):
+    successes = [];
     fsCmd = ["fs", "seta", "-dir", path, "-clear", "-acl"];
     peoplePerms = [
         "system:web-srv-users", "rl",
