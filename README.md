@@ -39,7 +39,7 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 
 ### Staff Todos
 - Add functionality to edit existing cfg files
-- Change `close_handin` to also run compile checks on student code
+- ~~Change `close_handin` to also run compile checks on student code~~
 - ~~Create script to modify AFS permissions for each student directory~~
 
 ### Student Todos
