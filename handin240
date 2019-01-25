@@ -690,9 +690,9 @@ def main():
         else:
             print(warning + "you are attempting to submit homework with errors! " +
                   "You will NOT receive any credit for files with errors.\n");
-            print("If this is intentional on your part, type 'yes' and press Enter.");
-            agreement = raw_input("I agree to hand in files with errors: ");
-            if (agreement != "yes"):
+            formatStr = "If this is intentional on your part, type '{}' and press Enter: ";
+            agreement = raw_input(formatStr.format(hwNum));
+            if (agreement != hwNum):
                 attemptHandin = False;
 
     if (attemptHandin):
