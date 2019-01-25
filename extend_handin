@@ -14,6 +14,17 @@ from env import *;
 
 isVerbose = False;
 
+# Colors!
+class bcolors:
+    HEADER = "\033[95m";
+    OKBLUE = "\033[94m";
+    OKGREEN = "\033[92m";
+    WARNING = "\033[93m";
+    FAIL = "\033[91m";
+    ENDC = "\033[0m";
+    BOLD = "\033[1m";
+    UNDERLINE = "\033[4m";
+
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
     usage = "usage: %prog [-v] hwNum studentID0, studentID1, ...";
@@ -40,12 +51,26 @@ def setStudentPerms(studentID, path):
         studentID, "write"
     ];
     fsCmd += peoplePerms;
-    subprocess.call(fsCmd);
+    try:
+        subprocess.check_output(fsCmd);
+        successes.append(studentID);
+        return True;
+    except subprocess.CalledProcessError, e:
+        error = bcolors.FAIL;
+        error += "Error granting extension for {}".format(studentID);
+        error += bcolors.ENDC;
+        print(error);
+        return False;
 
 def openStudentDirs(basePath, ids):
+    successes = [];
     for student in ids:
         path = basePath + "/" + student.lower();
-        setStudentPerms(student, path);
+        success = setStudentPerms(student, path);
+        if (success):
+            successes.append(student);
+
+    return successes;
 
 def main():
     (options, args) = getArgs();
@@ -56,12 +81,14 @@ def main():
 
     handinDir = HANDIN_DIR + "/" + hwNum;
 
-    openStudentDirs(handinDir, studentList);
+    successes = openStudentDirs(handinDir, studentList);
 
-    names = "";
-    for student in studentList:
-        names += student + " ";
-    print("Extensions granted for " + names);
+    names = ", ".join(successes)
+    if (len(successes) == 0):
+        print("Unable to grant any extensions.");
+        return 1;
+    else:
+        print("Extensions granted for " + names);
     return 0;
 
 exit(main());
