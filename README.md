@@ -36,10 +36,12 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 - Define TATB directory and usage
 - ~~Convert Python scripts into executables~~
 - ~~Edit `.cfg` file spec to match pretty-print code script~~
+
 ### Staff Todos
 - Add functionality to edit existing cfg files
 - Change `close_handin` to also run compile checks on student code
 - ~~Create script to modify AFS permissions for each student directory~~
+
 ### Student Todos
 - Stop being lazy and actually document code
 - Implement a "dry run" feature that just does error checks
