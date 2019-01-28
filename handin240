@@ -62,6 +62,19 @@ ERR_FAILTEST    = 2;
 ################################################################################
 
 class Operation:
+    """Class that holds the necessary information for a problem's operations
+
+    Attributes:
+        number (int): Problem number
+        existFiles ([str]): List of files to check for existence.
+        compileFiles ([str]): List of files to compile.
+        testFiles ([str]): List of TA testbenches to run against. (WIP)
+        specificModule (str): Name of module to compile for.
+        hasErrors (bool): True if there is an error with the problem, False
+            otherwise.
+        err (str): Output of error.
+
+    """
     def __init__(self):
         self.number = None;
         self.existFiles = None;
@@ -72,6 +85,16 @@ class Operation:
         self.err = "";
 
     def parseProblem(self, p):
+        """Reads the config file (as a dict) and sets the appropriate
+        attributes.
+
+        Args:
+            p (dict): Dict of the config file (see readme for keys).
+
+        Returns:
+            Nothing.
+
+        """
         if (p["number"] != None):
             self.number = p["number"];
         if (p["files"] != None):
@@ -88,7 +111,7 @@ class Operation:
         file.
 
         Args:
-            mainFile (str): Name of a bad file.
+            mainFile (str): Name of a bad file(s).
             errType (int): Error type to classify problem with file.
 
         Returns:
@@ -110,8 +133,10 @@ class Operation:
         directory. Also lists what files do not exist, if any.
 
         Args:
+            Nothing.
 
         Returns:
+            Nothing.
 
         """
         for f in self.existFiles:
@@ -129,13 +154,16 @@ class Operation:
 
         Utilizes a temporary directory called `temp240handin`. As of now, this
         function will actually overwrite that directory if it already exists, so
-        hope that the user doesn't have a folder with that name.
+        hope that the user doesn't have a folder with that name. Will remove
+        directory on finish.
 
         If there is an error, it will also print the compiler message to stdout.
 
         Args:
+            Nothing.
 
         Returns:
+            Nothing.
 
         """
         # Just in case something failed before, clean up old dir if it exists
@@ -200,8 +228,10 @@ class Operation:
         """Performs an operation based on the op's attributes.
 
         Args:
+            Nothing.
 
         Returns:
+            (str): The error message.
 
         """
         if (self.existFiles != None):
@@ -323,6 +353,16 @@ def parseConfig(configPath):
     return config;
 
 def createErrLog(contents, path="."):
+    """Writes an errors.log file with the formatting characters removed.
+
+    Args:
+        contents (str): The stuff to write to the log file.
+        path (str): Path to write errors.log (by default CWD).
+
+    Returns:
+        Nothing.
+
+    """
     fd = open(path + "/errors.log", "w");
 
     # Remove formatting characters
@@ -339,6 +379,16 @@ def createErrLog(contents, path="."):
     fd.close();
 
 def getOutputHeader(hwNum, studentID):
+    """Writes a formatted header that details hwNum and Andrew ID.
+
+    Args:
+        hwNum (str): Number of assignment (i.e. 'hw1').
+        studentID (str): Andrew ID of the student.
+
+    Returns:
+        (str): Populated header.
+
+    """
     outputHeader = HEADER_LINE;
     outputHeader += writeHeaderLine("18240: " + hwNum);
     outputHeader += writeHeaderLine("Error log for: " + studentID);
@@ -346,6 +396,17 @@ def getOutputHeader(hwNum, studentID):
     return outputHeader;
 
 def checkFs(studentID, studentDir):
+    """Checks AFS permissions for a student.
+
+    Args:
+        studentID (str): Andrew ID of the student.
+        studentDir (str): Path to the folder to check permissions for.
+
+    Returns:
+        (bool): True if student has write permissions, False otherwise (and if
+            student directory does not exist).
+
+    """
     fsCmd = ["fs", "la", studentDir];
     perms = subprocess.check_output(fsCmd).split();
     try:
@@ -359,8 +420,18 @@ def checkFs(studentID, studentDir):
     # Has write permissions
     return "rlidwk" in selfPerms[1];
 
-# Returns True on success, False on failure
 def doHandin(hwNum, studentID, filesToSubmit):
+    """Perform the handin tasks. Prints relevant errors on failures.
+
+    Args:
+        hwNum (str): Name of the assignment.
+        studentID (str): Student's Andrew ID.
+        filesToSubmit (set): List of all files to be copied to the handin dir.
+
+    Returns:
+        (bool): True on success, False on failure.
+
+    """
     studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID;
 
     # Check if student exists in handin directory
@@ -626,6 +697,15 @@ def makePDF(hwNum, student, problemDictList):
     maker.make_code()
 
 def makeOpArray(config):
+    """Create an array of Operation objects from a config dict.
+
+    Args:
+        config (dict): Dict that represents the assignment's config
+
+    Returns:
+        ([Operation]): Array of problem ops.
+
+    """
     opArray = [];
     # Sort problem config array by problem number
     config = sorted(config, key=lambda p: p["number"]);
@@ -636,6 +716,15 @@ def makeOpArray(config):
     return opArray;
 
 def searchCfg(fileName):
+    """Case-insensitive search for a target config file in CFG_DIR.
+
+    Args:
+        fileName (str): Name of the config file to search for.
+
+    Returns:
+        (str): Path to the config file.
+
+    """
     fileList = os.listdir(CFG_DIR);
     for f in fileList:
         if (f.lower() == fileName.lower()):
