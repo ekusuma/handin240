@@ -414,7 +414,7 @@ def main():
     sys.stdout.write("\nChecking handins for all students...\n");
     sys.stdout.flush();
     errorStudents = checkStudents(handinDir, dirList, hwNum);
-    sys.stdout.write("done\n");
+    sys.stdout.write("Done!\n");
     sys.stdout.flush();
     writeResults(hwNum, errorStudents);
 
