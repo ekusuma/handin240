@@ -22,6 +22,7 @@ import shutil;
 import optparse;
 import subprocess;
 import json;
+import glob;
 
 import reportlab
 
@@ -71,17 +72,46 @@ class Operation:
         self.hasErrors = False;
         self.err = "";
 
+    def checkWildcard(self):
+        tempExistFiles = set();
+        tempCompileFiles = set();
+        existWildcard = False;
+        compileWildcard = False;
+
+        if (self.existFiles != None):
+            for f in self.existFiles:
+                # Add all the wildcard files
+                if ("*" in f):
+                    existWildcard = True;
+                    allFiles = set(glob.glob(f));
+                    tempExistFiles = tempExistFiles.union(allFiles);
+            if (existWildcard):
+                self.existFiles = tempExistFiles;
+        if (self.compileFiles != None):
+            for f in self.compileFiles:
+                if ("*" in f):
+                    compileWildcard = True;
+                    allFiles = set(glob.glob(f));
+                    tempCompileFiles = tempCompileFiles.union(allFiles);
+            if (compileWildcard):
+                self.compileFiles = tempCompileFiles;
+
     def parseProblem(self, p):
         if (p["number"] != None):
             self.number = p["number"];
         if (p["files"] != None):
             self.existFiles = p["files"];
+            for f in self.existFiles:
+                if ("*" in f):
+                    self.getWildcard = True;
+                    break;
         if (p["compileFiles"] != None):
             self.compileFiles = p["compileFiles"];
         if (p["testFiles"] != None):
             self.testFiles = p["testFiles"];
         if (p["specificModule"] != None):
             self.specificModule = p["specificModule"];
+        self.checkWildcard();
 
     def getOpError(self, mainFile, errType):
         """Create a formatted error message depending on what was wrong with the
@@ -667,6 +697,8 @@ def main():
     for op in opArray:
         if (op.existFiles != None):
             filesToSubmit = filesToSubmit.union(set(op.existFiles));
+        if (op.compileFiles != None):
+            filesToSubmit = filesToSubmit.union(set(op.compileFiles));
         errString = op.do();
         if (op.hasErrors):
             hasAnyErrors = True;
