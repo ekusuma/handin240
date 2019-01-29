@@ -84,6 +84,9 @@ Homework config files must meet the following requirements:
 - Be of `.json` format
 - Be named `hwNum_cfg.json`
 
+Note that for specifying files to submit with the wildcard `*`, it is assumed
+that these will not need to be compiled. Be careful when using it.
+
 The JSON must be an *array* of objects that have the following attributes:
 
 | Attribute        | Type            | Description                                                                                                        |
