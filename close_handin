@@ -347,6 +347,7 @@ def checkStudent(studentDir, opArray, hwNum):
     personalOutput = getOutputHeader(hwNum, studentDir);
     hasAnyErrors = False;
     os.chdir(studentDir);
+    print("\tChecking compile for {}".format(studentDir));
     for op in opArray:
         op.clearErrors();
         errString = op.do();
@@ -410,7 +411,7 @@ def main():
     closeStudentDirs(handinDir, dirList);
     print("\n{}Handin directories closed.{}".format(bcolors.OKGREEN, bcolors.ENDC));
 
-    sys.stdout.write("\nChecking handins for all students...");
+    sys.stdout.write("\nChecking handins for all students...\n");
     sys.stdout.flush();
     errorStudents = checkStudents(handinDir, dirList, hwNum);
     sys.stdout.write("done\n");
