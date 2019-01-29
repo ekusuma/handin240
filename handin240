@@ -84,6 +84,7 @@ class Operation:
         self.specificModule = None;
         self.hasErrors = False;
         self.err = "";
+        self.useWildcard = False;
 
     def checkWildcard(self):
         tempExistFiles = set();
@@ -96,6 +97,7 @@ class Operation:
                 # Add all the wildcard files
                 if ("*" in f):
                     existWildcard = True;
+                    self.useWildcard = True;
                     allFiles = set(glob.glob(f));
                     tempExistFiles = tempExistFiles.union(allFiles);
             if (existWildcard):
@@ -169,6 +171,8 @@ class Operation:
             Nothing.
 
         """
+        if (self.useWildcard):
+            print("Files that will be handed in:");
         for f in self.existFiles:
             if (not os.path.exists("./" + f)):
                 self.hasErrors = True;
@@ -176,7 +180,13 @@ class Operation:
                 print(error.strip());
                 self.err += error;
             else:
-                print(f + ": file exists, good");
+                if (self.useWildcard):
+                    print("\t{}".format(f));
+                else:
+                    print(f + ": file exists, good");
+        if (self.useWildcard):
+            print("If you do not wish to hand in these files, please move " +
+                    "them away from your current directory");
 
     def checkCompilation(self):
         """Tries to compile files from a list using VCS (or vLogan+VCS), and
