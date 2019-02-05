@@ -729,6 +729,11 @@ class HW_Code_Maker:
 
 def makePDF(hwNum, student, problemDictList):
     cfgPath = CFG_DIR + "/" + hwNum + "_cfg.json"
+    for prob in problemDictList:
+        if (prob["files"] != None):
+            for f in prob["files"]:
+                if ("*" in f):
+                    prob["files"] = glob.glob(f);
 
     hw_dict = {'number' : hwNum, 'problems' : problemDictList,
                'student' : student}
