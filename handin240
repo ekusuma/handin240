@@ -89,27 +89,24 @@ class Operation:
     def checkWildcard(self):
         tempExistFiles = set();
         tempCompileFiles = set();
-        existWildcard = False;
-        compileWildcard = False;
 
         if (self.existFiles != None):
             for f in self.existFiles:
                 # Add all the wildcard files
                 if ("*" in f):
-                    existWildcard = True;
                     self.useWildcard = True;
                     allFiles = set(glob.glob(f));
                     tempExistFiles = tempExistFiles.union(allFiles);
-            if (existWildcard):
-                self.existFiles = tempExistFiles;
+                else:
+                    tempExistFiles.add(f);
+            # Convert to a list for ordering
+            self.existFiles = sorted(list(tempExistFiles));
         if (self.compileFiles != None):
             for f in self.compileFiles:
                 if ("*" in f):
-                    compileWildcard = True;
                     allFiles = set(glob.glob(f));
                     tempCompileFiles = tempCompileFiles.union(allFiles);
-            if (compileWildcard):
-                self.compileFiles = tempCompileFiles;
+            self.compileFiles = sorted(list(tempCompileFiles));
 
     def parseProblem(self, p):
         """Reads the config file (as a dict) and sets the appropriate
@@ -126,10 +123,6 @@ class Operation:
             self.number = p["number"];
         if (p["files"] != None):
             self.existFiles = p["files"];
-            for f in self.existFiles:
-                if ("*" in f):
-                    self.getWildcard = True;
-                    break;
         if (p["compileFiles"] != None):
             self.compileFiles = p["compileFiles"];
         if (p["testFiles"] != None):
