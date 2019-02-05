@@ -35,11 +35,14 @@ def printProbSummary(prob):
     else:
         print("\tFiles: {}".format(", ".join(prob["files"])));
     if (prob["compileFiles"] == None):
-        print("\tFiles: {}".format(prob["compileFiles"]));
+        print("\tFiles to compile: {}".format(prob["compileFiles"]));
     else:
         print("\tFiles to compile: {}".format(", ".join(prob["compileFiles"])));
     #print("\tFiles to test: {}".format(", ".join(prob["testFiles"])));
-    print("\tModule: {}".format(prob["specificModule"]));
+    if (prob["specificModules"] == None):
+        print("\tModules to compile: {}".format(prob["specificModules"]));
+    else:
+        print("\tModules to compile: {}".format(", ".join(prob["specificModules"])));
 
 def finishConfig(probArr, cfgPath):
     jsonStr = json.dumps(probArr, indent=4, separators=(',', ': '));
@@ -153,12 +156,13 @@ def main():
             probObj["testFiles"] = None;
 
             # Configure specific module for vLogan compilation
-            specModule = raw_input("Is there a specific module to compile (ie " +
-                "be 'vLogan-ed')? Leave empty if no, or enter the module name: ").strip();
+            specModule = raw_input("Are there specific module(s) to compile (ie " +
+                "be 'vLogan-ed')? Leave empty if no, or enter the module names " +
+                "separated by spaces: ").strip();
             if (specModule == ""):
-                probObj["specificModule"] = None;
+                probObj["specificModules"] = None;
             else:
-                probObj["specificModule"] = specModule;
+                probObj["specificModules"] = specModule.split();
 
             printProbSummary(probObj);
 
