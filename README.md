@@ -89,15 +89,15 @@ that these will not need to be compiled. Be careful when using it.
 
 The JSON must be an *array* of objects that have the following attributes:
 
-| Attribute        | Type            | Description                                                                                                        |
-| ---------------: | --------------- | -------------------------------------------------------------------------------------------------------------------|
-| `number`         | `int`           | Problem number (i.e. order in homework)                                                                            |
-| `drill`          | `bool`          | Is the problem a drill problem?                                                                                    |
-| `points`         | `int`           | Point value for problem                                                                                            |
-| `files`          | `[str] or null` | List of filenames that student must submit                                                                         |
-| `compileFiles`   | `[str] or null` | List of files that must compile together (these files will be what is passed into `vcs`)                           |
-| `testFiles`      | `[str] or null` | List of TA testbench file(s) for autograding.  These must be placed in a specific directory (to be decided)        |
-| `specificModule` | `str or null`   | Name of a **specific** module to compile, in case the file has multiple conflicting modules. Uses `vlogan` parsing |
+| Attribute         | Type            | Description                                                                                                         |
+| ----------------: | --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `number`          | `int`           | Problem number (i.e. order in homework)                                                                             |
+| `drill`           | `bool`          | Is the problem a drill problem?                                                                                     |
+| `points`          | `int`           | Point value for problem                                                                                             |
+| `files`           | `[str] or null` | List of filenames that student must submit                                                                          |
+| `compileFiles`    | `[str] or null` | List of files that must compile together (these files will be what is passed into `vcs`)                            |
+| `testFiles`       | `[str] or null` | List of TA testbench file(s) for autograding.  These must be placed in a specific directory (to be decided)         |
+| `specificModules` | `[str] or null` | Name of **specific** module(s) to compile, in case the file has multiple conflicting modules. Uses `vlogan` parsing |
 
 For the last four attributes, if the attribute does not apply then they may be
 `null`.
