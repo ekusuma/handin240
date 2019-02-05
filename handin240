@@ -106,6 +106,8 @@ class Operation:
                 if ("*" in f):
                     allFiles = set(glob.glob(f));
                     tempCompileFiles = tempCompileFiles.union(allFiles);
+                else:
+                    tempCompileFiles.add(f);
             self.compileFiles = sorted(list(tempCompileFiles));
 
     def parseProblem(self, p):
