@@ -70,7 +70,7 @@ class Operation:
         existFiles ([str]): List of files to check for existence.
         compileFiles ([str]): List of files to compile.
         testFiles ([str]): List of TA testbenches to run against. (WIP)
-        specificModule (str): Name of module to compile for.
+        specificModules ([str]): Name of modules to compile for.
         hasErrors (bool): True if there is an error with the problem, False
             otherwise.
         err (str): Output of error.
@@ -81,7 +81,7 @@ class Operation:
         self.existFiles = None;
         self.compileFiles = None;
         self.testFiles = None;
-        self.specificModule = None;
+        self.specificModules = None;
         self.hasErrors = False;
         self.err = "";
         self.useWildcard = False;
@@ -134,8 +134,8 @@ class Operation:
             self.compileFiles = p["compileFiles"];
         if (p["testFiles"] != None):
             self.testFiles = p["testFiles"];
-        if (p["specificModule"] != None):
-            self.specificModule = p["specificModule"];
+        if (p["specificModules"] != None):
+            self.specificModules = p["specificModules"];
         self.checkWildcard();
 
     def getOpError(self, mainFile, errType):
@@ -219,7 +219,7 @@ class Operation:
             fileList.append("../" + fileName);  # Add "../" prefix to all files
 
         # TODO: find some way to suppress output for errors
-        if (self.specificModule != None):
+        if (self.specificModules != None):
             # Command to run vlogan with files
             vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
             try:
@@ -233,16 +233,17 @@ class Operation:
                 self.err += e.output + "\n";
             # Should only progress to VCS compilation if no errors
             if (not self.hasErrors):
-                vcsCmd = ["vcs", "-q", "-sverilog", "-nc", self.specificModule];
-                try:
-                    out = subprocess.check_output(vcsCmd);
-                except subprocess.CalledProcessError, e:
-                    self.hasErrors = True;
-                    files = ", ".join(fileList).replace("../", "");
-                    error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-                    print(error.strip());
-                    self.err += error;
-                    self.err += e.output + "\n";
+                for module in self.specificModules:
+                    vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module];
+                    try:
+                        out = subprocess.check_output(vcsCmd);
+                    except subprocess.CalledProcessError, e:
+                        self.hasErrors = True;
+                        files = ", ".join(fileList).replace("../", "");
+                        error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
+                        print(error.strip());
+                        self.err += error;
+                        self.err += e.output + "\n";
         else:
             vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList;
             try:
