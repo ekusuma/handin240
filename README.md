@@ -51,6 +51,10 @@ The script will also run the handin on all of the students' directories to
 generate an `errors.log` file, to make things easier on the grading TA. There
 will also be a summary file in `$STAFF_DIR/handinResults/hwNum_results.txt`.
 
+Note that since this compilation check is done, it will take a while to
+complete. I recommend either backgrounding the job or running it in a `tmux`
+instance.
+
 Unfortunately this script must be run *manually*, as currently there is no
 reliable way to facilitate `cron` jobs on AFS. *Just make sure that someone runs
 this whenever a homework deadline is passed.*
