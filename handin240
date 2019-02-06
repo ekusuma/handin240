@@ -746,7 +746,6 @@ def makePDF(hwNum, student, problemDictList):
                 else:
                     tempFiles.add(f);
             prob["files"] = sorted(list(tempFiles));
-            print(prob["files"]);
 
     hw_dict = {'number' : hwNum, 'problems' : problemDictList,
                'student' : student}
