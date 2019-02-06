@@ -58,6 +58,10 @@ ERR_NOEXIST     = 0;
 ERR_NOCOMPILE   = 1;
 ERR_FAILTEST    = 2;
 
+NO_PRINT = [
+    ".png"
+]
+
 ################################################################################
 #                           Code for the handin script                         #
 ################################################################################
@@ -725,11 +729,24 @@ class HW_Code_Maker:
 
 def makePDF(hwNum, student, problemDictList):
     cfgPath = CFG_DIR + "/" + hwNum + "_cfg.json"
+    tempFiles = set();
+    # TODO: make this more graceful
     for prob in problemDictList:
         if (prob["files"] != None):
             for f in prob["files"]:
                 if ("*" in f):
-                    prob["files"] = glob.glob(f);
+                    toSkip = False;
+                    for bad in NO_PRINT:
+                        if (bad in f):
+                            toSkip = True;
+                    if (toSkip):
+                        continue;
+                    allFiles = set(glob.glob(f));
+                    tempFiles = tempFiles.union(allFiles);
+                else:
+                    tempFiles.add(f);
+            prob["files"] = sorted(list(tempFiles));
+            print(prob["files"]);
 
     hw_dict = {'number' : hwNum, 'problems' : problemDictList,
                'student' : student}
