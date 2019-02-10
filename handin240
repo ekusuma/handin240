@@ -211,6 +211,7 @@ class Operation:
         # Create temporary directory for compilation files, and cd into it
         os.mkdir("./temp240handin");
         os.chdir("./temp240handin");
+        FNULL = open(os.devnull, "w");
 
         # Actual files are located a folder up, so:
         fileList = [];
@@ -222,7 +223,7 @@ class Operation:
             # Command to run vlogan with files
             vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
             try:
-                out = subprocess.check_output(vloganCmd);
+                out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT);
             except subprocess.CalledProcessError, e:
                 self.hasErrors = True;
                 files = ", ".join(fileList).replace("../", "");
@@ -235,7 +236,7 @@ class Operation:
                 for module in self.specificModules:
                     vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module];
                     try:
-                        out = subprocess.check_output(vcsCmd);
+                        out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT);
                     except subprocess.CalledProcessError, e:
                         self.hasErrors = True;
                         files = ", ".join(fileList).replace("../", "");
@@ -745,7 +746,7 @@ def makePDF(hwNum, student, problemDictList):
                     tempFiles = tempFiles.union(allFiles);
                 else:
                     tempFiles.add(f);
-            prob["files"] = sorted(list(tempFiles));
+    prob["files"] = sorted(list(tempFiles));
 
     hw_dict = {'number' : hwNum, 'problems' : problemDictList,
                'student' : student}
