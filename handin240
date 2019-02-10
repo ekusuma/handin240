@@ -729,9 +729,9 @@ class HW_Code_Maker:
 
 def makePDF(hwNum, student, problemDictList):
     cfgPath = CFG_DIR + "/" + hwNum + "_cfg.json"
-    tempFiles = set();
     # TODO: make this more graceful
     for prob in problemDictList:
+        tempFiles = set();
         if (prob["files"] != None):
             for f in prob["files"]:
                 if ("*" in f):
@@ -745,7 +745,7 @@ def makePDF(hwNum, student, problemDictList):
                     tempFiles = tempFiles.union(allFiles);
                 else:
                     tempFiles.add(f);
-    prob["files"] = sorted(list(tempFiles));
+        prob["files"] = sorted(list(tempFiles));
 
     hw_dict = {'number' : hwNum, 'problems' : problemDictList,
                'student' : student}
