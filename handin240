@@ -211,7 +211,6 @@ class Operation:
         # Create temporary directory for compilation files, and cd into it
         os.mkdir("./temp240handin");
         os.chdir("./temp240handin");
-        FNULL = open(os.devnull, "w");
 
         # Actual files are located a folder up, so:
         fileList = [];
