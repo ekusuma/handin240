@@ -246,7 +246,7 @@ class Operation:
         else:
             vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList;
             try:
-                out = subprocess.check_output(vcsCmd);
+                out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT);
             except subprocess.CalledProcessError, e:
                 self.hasErrors = True;
                 files = ", ".join(fileList).replace("../", "");
