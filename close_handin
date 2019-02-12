@@ -135,7 +135,7 @@ class Operation:
             # Command to run vlogan with files
             vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
             try:
-                out = subprocess.check_output(vloganCmd);
+                out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT);
             except subprocess.CalledProcessError, e:
                 self.hasErrors = True;
                 files = ", ".join(fileList).replace("../", "");
@@ -147,7 +147,7 @@ class Operation:
                 for module in self.specificModules:
                     vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module];
                     try:
-                        out = subprocess.check_output(vcsCmd);
+                        out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT);
                     except subprocess.CalledProcessError, e:
                         self.hasErrors = True;
                         files = ", ".join(fileList).replace("../", "");
