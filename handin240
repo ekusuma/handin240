@@ -630,7 +630,10 @@ class HW_Code_Maker:
         prob_drill  = prob_dict['drill']
         prob_points = prob_dict['points']
         if self.page_number == 1:
-            to_print = 'Problem {}: [{} points]'.format(prob_number, prob_points)
+            if (prob_number < 0):   # To be used for lab code
+                to_print = 'Lab Code [{} points]'.format(prob_points)
+            else:
+                to_print = 'Problem {}: [{} points]'.format(prob_number, prob_points)
             if prob_drill:
                 to_print = to_print + ' Drill problem'
             self.draw_text_object(to_print, 'Header')
