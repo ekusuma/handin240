@@ -21,6 +21,7 @@ import os;
 import shutil;
 import optparse;
 import subprocess;
+import tempfile;
 import json;
 import glob;
 
@@ -62,6 +63,29 @@ ERR_FAILTEST    = 2;
 NO_PRINT = [
     ".png"
 ];
+
+##################### Run a command with a Timeout #############################
+def runTimeout(command):
+    outFile =  tempfile.SpooledTemporaryFile();
+    proc = subprocess.Popen(command, stdout=outFile, stderr=outFile);
+    wait_remaining_sec = 10;
+    timedOut = False;
+
+    while proc.poll() is None and wait_remaining_sec > 0:
+        time.sleep(1);
+        wait_remaining_sec -= 1;
+
+    if wait_remaining_sec <= 0:
+        os.kill(proc.pid,0);
+        timedOut = True;
+
+    # read temp streams from start
+    outFile.seek(0);
+    out = outFile.read();
+    outFile.close();
+    if(timedOut):
+        out = "FAILED: timeout\n" + out;
+    return out;
 
 ################################################################################
 #                           Code for the handin script                         #
