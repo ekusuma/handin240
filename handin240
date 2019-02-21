@@ -58,9 +58,10 @@ ERR_NOEXIST     = 0;
 ERR_NOCOMPILE   = 1;
 ERR_FAILTEST    = 2;
 
+# List of file types that should not be printed by reportlab
 NO_PRINT = [
     ".png"
-]
+];
 
 ################################################################################
 #                           Code for the handin script                         #
@@ -91,19 +92,29 @@ class Operation:
         self.useWildcard = False;
 
     def checkWildcard(self):
+        """Checks the list of files for wildcard specifiers, then adds files
+        that satisfy the wildcard(s) to the list.
+
+        Args:
+            Nothing.
+
+        Returns:
+            Nothing.
+
+        """
         tempExistFiles = set();
         tempCompileFiles = set();
 
         if (self.existFiles != None):
             for f in self.existFiles:
-                # Add all the wildcard files
                 if ("*" in f):
+                # Add all the wildcard files
                     self.useWildcard = True;
                     allFiles = set(glob.glob(f));
                     tempExistFiles = tempExistFiles.union(allFiles);
                 else:
                     tempExistFiles.add(f);
-            # Convert to a list for ordering
+            # Convert to a list, alphabetical order
             self.existFiles = sorted(list(tempExistFiles));
         if (self.compileFiles != None):
             for f in self.compileFiles:
