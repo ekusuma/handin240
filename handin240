@@ -8,7 +8,7 @@
 # Usage:
 #   - cd into the directory with all of the necessary files
 #   - Run script with the homework number as the argument:
-#       ./handin240 hw8
+#       ./handin240 hw1
 #   - If the student wishes to submit an incomplete homework (i.e. with certain
 #     files missing or unable to compile) they may run the script with the -f flag
 #
@@ -40,9 +40,9 @@ class bcolors:
     HEADER = "\033[95m";
     OKBLUE = "\033[94m";
     OKGREEN = "\033[92m";
-    # Change from yellow (hard to read on white) to magenta
-    #WARNING = "\033[93m";
-    WARNING = "\033[95m";
+    WARNING = "\033[33m";   # Darker yellow
+    #WARNING = "\033[93m";  # Yellow
+    #WARNING = "\033[95m";  # Magenta
     FAIL = "\033[91m";
     ENDC = "\033[0m";
     BOLD = "\033[1m";
@@ -217,7 +217,6 @@ class Operation:
         for fileName in self.compileFiles:
             fileList.append("../" + fileName);  # Add "../" prefix to all files
 
-        # TODO: find some way to suppress output for errors
         if (self.specificModules != None):
             # Command to run vlogan with files
             vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
