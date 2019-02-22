@@ -69,6 +69,14 @@ def searchForProb(dictArr, value, key="number"):
     return None;
 
 def main():
+    # s a d b o i s
+    warn = bcolors.WARNING + "WARNING: " + bcolors.ENDC;
+    warn += "This utility currently does not work with handin240's current ";
+    warn += "state. Please wait for a future update :-(";
+    print(warn);
+    print("Exiting...");
+    exit(1);
+
     (options, args) = getArgs();
     hwNum = args[0];
     cfgPath = CFG_DIR + "/" + hwNum + "_cfg.json";
