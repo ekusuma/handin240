@@ -18,6 +18,8 @@
 from env import *;
 
 import os;
+import signal;
+import time;
 import shutil;
 import optparse;
 import subprocess;
@@ -58,6 +60,7 @@ HEADER_LINE = "*" * HEADER_LEN + "\n";
 ERR_NOEXIST     = 0;
 ERR_NOCOMPILE   = 1;
 ERR_FAILTEST    = 2;
+ERR_NOCOMPTATB  = 3;
 
 # List of file types that should not be printed by reportlab
 NO_PRINT = [
@@ -67,16 +70,21 @@ NO_PRINT = [
 ##################### Run a command with a Timeout #############################
 def runTimeout(command):
     outFile =  tempfile.SpooledTemporaryFile();
-    proc = subprocess.Popen(command, stdout=outFile, stderr=outFile);
+    # ref:
+    # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true/4791612#4791612
+    proc = subprocess.Popen(command, stdout=outFile, stderr=outFile,
+            shell=True, preexec_fn=os.setsid);
+    # Time to wait until timeout, in seconds
     wait_remaining_sec = 10;
     timedOut = False;
 
+    # Wait for either simulation end or timeout
     while proc.poll() is None and wait_remaining_sec > 0:
         time.sleep(1);
         wait_remaining_sec -= 1;
 
     if wait_remaining_sec <= 0:
-        os.kill(proc.pid,0);
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM);
         timedOut = True;
 
     # read temp streams from start
@@ -84,7 +92,7 @@ def runTimeout(command):
     out = outFile.read();
     outFile.close();
     if(timedOut):
-        out = "FAILED: timeout\n" + out;
+        out = "ERROR: simulation timed out\n\n" + out;
     return out;
 
 ################################################################################
@@ -98,18 +106,19 @@ class Operation:
         number (int): Problem number
         existFiles ([str]): List of files to check for existence.
         compileFiles ([str]): List of files to compile.
-        testFiles ([str]): List of TA testbenches to run against. (WIP)
+        testbenches ([dict]): List of TA testbenches to run against. (WIP)
         specificModules ([str]): Name of modules to compile for.
         hasErrors (bool): True if there is an error with the problem, False
             otherwise.
         err (str): Output of error.
+        useWildCard(bool): True if files used a wildcard (*).
 
     """
     def __init__(self):
         self.number = None;
         self.existFiles = None;
         self.compileFiles = None;
-        self.testFiles = None;
+        self.testbenches = None;
         self.specificModules = None;
         self.hasErrors = False;
         self.err = "";
@@ -166,8 +175,10 @@ class Operation:
             self.existFiles = p["files"];
         if (p["compileFiles"] != None):
             self.compileFiles = p["compileFiles"];
-        if (p["testFiles"] != None):
-            self.testFiles = p["testFiles"];
+        #TODO
+        #if (p["testbenches"] != None):
+        #    self.testbenches = p["testbenches"];
+        self.testbenches = [{"tb": "fooTATB", "file": "foo.svp"}];
         if (p["specificModules"] != None):
             self.specificModules = p["specificModules"];
         self.checkWildcard();
@@ -188,6 +199,8 @@ class Operation:
             errMessage = "file does not exist";
         elif (errType == ERR_NOCOMPILE):
             errMessage = "failed to compile";
+        elif (errType == ERR_NOCOMPTATB):
+            errMessage = "failed to compile with TA testbench";
         elif (errType == ERR_FAILTEST):
             errMessage = "failed TA testbench";
         else:
@@ -226,7 +239,7 @@ class Operation:
         """Tries to compile files from a list using VCS (or vLogan+VCS), and
         checks to see if any compilation errors arise.
 
-        Utilizes a temporary directory called `temp240handin`. As of now, this
+        Utilizes a temporary directory called `__temp240`. As of now, this
         function will actually overwrite that directory if it already exists, so
         hope that the user doesn't have a folder with that name. Will remove
         directory on finish.
@@ -242,10 +255,10 @@ class Operation:
         """
         # Just in case something failed before, clean up old dir if it exists
         #   Ignore errors because they might not have the directory
-        shutil.rmtree("./temp240handin", ignore_errors=True);
+        shutil.rmtree("./__temp240", ignore_errors=True);
         # Create temporary directory for compilation files, and cd into it
-        os.mkdir("./temp240handin");
-        os.chdir("./temp240handin");
+        os.mkdir("./__temp240");
+        os.chdir("./__temp240");
 
         # Actual files are located a folder up, so:
         fileList = [];
@@ -294,9 +307,77 @@ class Operation:
 
         # Cleanup
         os.chdir("..");
-        shutil.rmtree("./temp240handin");
+        shutil.rmtree("./__temp240");
 
-    # TODO: checkTATB()
+    def checkTATB(self):
+        """Runs student code against all the TA testbenches defined in the
+        testbenches attribute. Note that for a testbench to "fail", the string
+        "error" (case-insensitive) must be printed somewhere.
+
+        Args:
+            Nothing.
+
+        Returns:
+            Nothing.
+
+        """
+        shutil.rmtree("./__temp240", ignore_errors=True);
+        os.mkdir("./__temp240");
+        os.chdir("./__temp240");
+        tatbDir = "{}/{}/".format(HANDOUT_DIR, hwNum);
+
+        fileList = [];
+        for fileName in self.compileFiles:
+            fileList.append("../" + fileName);
+
+        print("Running against TA testbench for Problem {}".format(self.number));
+        for tatb in self.testbenches:
+            tbName = tatb["tb"];
+            tbFile = tatb["file"];
+            tbPath = tatbDir + tbFile;
+            print("\t{}:".format(tbName)),
+            vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
+            vloganCmd += [tbPath];
+            try:
+                out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT);
+            except subprocess.CalledProcessError, e:
+                self.hasErrors = True;
+                error = "{}failed to compile with TATB{}".format(bcolors.FAIL,
+                        bcolors.ENDC);
+                print(error);
+                self.err += "Failed to compile with TA testbench: {}".format(tbName);
+                self.err += "\n";
+                self.err += e.output + "\n";
+            # Should only progress to VCS compilation if no errors
+            if (not self.hasErrors):
+                vcsCmd = ["vcs", "-q", "-sverilog", "-nc", tbName];
+                try:
+                    out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT);
+                except subprocess.CalledProcessError, e:
+                    self.hasErrors = True;
+                    error = "{}failed to compile with TATB{}".format(bcolors.FAIL,
+                            bcolors.ENDC);
+                    print(error);
+                    self.err += "Failed to compile with TA testbench: {}".format(tbName);
+                    self.err += "\n";
+                    self.err += e.output + "\n";
+            if (not self.hasErrors):
+            # Now we can run simv
+                out = runTimeout("./simv");
+                if ("error" in out.lower()):
+                    self.hasErrors = True;
+                    error = "{}failed testbench{}".format(bcolors.FAIL,
+                            bcolors.ENDC);
+                    print(error);
+                    self.err += "Failed TA testbench: {}".format(tbName);
+                    self.err += "\n";
+                    self.err += out + "\n";
+                else:
+                    print("passed!");
+
+        # Cleanup
+        os.chdir("..");
+        shutil.rmtree("./__temp240");
 
     def do(self):
         """Performs an operation based on the op's attributes.
@@ -314,6 +395,10 @@ class Operation:
                 return self.err + "\n";
         if (self.compileFiles != None):
             self.checkCompilation();
+            if (self.hasErrors):
+                return self.err + "\n";
+        if (self.testbenches != None):
+            self.checkTATB();
             if (self.hasErrors):
                 return self.err + "\n";
         return "";
@@ -830,6 +915,7 @@ def main():
 
     # Save relevant fields
     isForced = options.force;
+    global hwNum;
     hwNum = args[0].lower();            # Make case insensitive
     selfID = os.getlogin().lower();     # Get student's Andrew ID
 
