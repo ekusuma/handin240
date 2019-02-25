@@ -174,7 +174,27 @@ def main():
                 probObj["compileFiles"] = compFiles.split();
 
             #TODO: implement properly this when TATB functionality is ready
+            notDone = True;
+            while (notDone):
+                hasTATB = raw_input("Is there a TA testbench in the " +
+                    "handout/hwnum directory? [y/n]: ").strip();
+                if ((hasTATB.lower() == "y") or (hasTATB.lower() == "yes")):
+                    hasTATB = True;
+                    notDone = False;
+                elif ((hasTATB.lower() == "n") or (hasTATB.lower() == "no")):
+                    hasTATB = False;
+                    notDone = False;
+                else:
+                    print("Please enter yes/y or no/n.");
+            if (hasTATB):
+                notDone = True;
+                tbFile = raw_input("What is the name of the TA testbench " +
+                    "file?: ").strip();
             probObj["testFiles"] = None;
+            testFiles = raw_input("What TA testbench should this be checked " +
+                "against? Enter the file name of the testbench (located inside " +
+                "of the hw's handout directory), then the testbench module " +
+                "name: ").strip();
 
             # Configure specific module for vLogan compilation
             specModule = raw_input("Are there specific module(s) to compile (ie " +

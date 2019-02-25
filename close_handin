@@ -17,6 +17,7 @@
 
 import optparse;
 import os;
+import time;
 import subprocess;
 import json;
 import shutil;
@@ -191,8 +192,10 @@ class Operation:
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
-    usage = "usage: %prog hwNum";
+    usage = "usage: %prog [-t] hwNum";
     parser = optparse.OptionParser(usage=usage)
+    parser.add_option("-t", "--time", action="store", dest="time",
+            help="scheduled close time");
     (options, args) = parser.parse_args();
     if (len(args) != 1):
         parser.error("Must specify homework number as arg");
@@ -394,9 +397,21 @@ def checkStudents(handinDir, studentList, hwNum):
     os.chdir(oldCwd);
     return errorStudents;
 
+def checkTime(targetTime):
+    goodHr = (time.localtime().tm_hour == targetTime.tm_hour);
+    goodMin = (time.localtime().tm_min == targetTime.tm_min);
+    return goodHr and goodMin;
+
 def main():
     (options, args) = getArgs();
     hwNum = args[0].lower();
+    closeTime = options.time;
+    isScheduled = (closeTime != None);
+    try:
+        closeTime = time.strptime(closeTime, "%H:%M");
+    except ValueError:
+        print("ERROR: time must be in the format HH:MM (24-hour time)");
+        return 255;
 
     handinDir = HANDIN_DIR + "/" + hwNum;
     print("Closing handin directories in " + handinDir);
@@ -409,6 +424,17 @@ def main():
         if (os.path.isdir(handinDir + "/" + f)):
             dirList.append(f);
 
+    startNow = False;
+    if (isScheduled):
+        print("Waiting for scheduled time: {}:{}".format(closeTime.tm_hour,
+    while (not startNow):
+        if (not isScheduled):
+            break;
+            closeTime.tm_min));
+        if (checkTime(closeTime)):
+            startNow = True;
+        else:
+            time.sleep(30);
     closeStudentDirs(handinDir, dirList);
     print("\n{}Handin directories closed.{}".format(bcolors.OKGREEN, bcolors.ENDC));
 
