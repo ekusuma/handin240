@@ -427,10 +427,10 @@ def main():
     startNow = False;
     if (isScheduled):
         print("Waiting for scheduled time: {}:{}".format(closeTime.tm_hour,
+            closeTime.tm_min));
     while (not startNow):
         if (not isScheduled):
             break;
-            closeTime.tm_min));
         if (checkTime(closeTime)):
             startNow = True;
         else:
