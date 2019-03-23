@@ -39,7 +39,7 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 
 ### Staff Todos
 - Add functionality to edit existing cfg files
-- Find a way to supress stdout
+- ~~Find a way to supress stdout~~
 - ~~Change `close_handin` to also run compile checks on student code~~
 - ~~Create script to modify AFS permissions for each student directory~~
 
@@ -47,7 +47,8 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 - Stop being lazy and actually document code
 - Implement a "dry run" feature that just does error checks
 - Implement automatic tester
-- Find a way to supress stdout/stderr
+- Add timestamp for each execution of handin (for stat tracking)
+- ~~Find a way to supress stdout/stderr~~
 - ~~Error handling when necessary files do not exist~~
 - ~~Check if script works if files are within STAFF directory~~ Nope, we'll have
   to deploy student files in the public course space
