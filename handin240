@@ -19,7 +19,7 @@ from env import *;
 
 import os;
 import shutil;
-import optparse;
+import argparse;
 import subprocess;
 import json;
 import glob;
@@ -352,26 +352,25 @@ def writeHeaderLine(header, filled=False):
     return headerLine;
 
 def getArgs():
-    """Uses optparse to get script options and args from command line.
+    """Uses argparse to get script options and args from command line.
     Raises an error (and exits) if no arg for hwNum is given.
 
     Args:
         Nothing
 
     Returns:
-        (obj): An optparse object whose attributes correspond to the options
+        (obj): An argparse object whose attributes correspond to the options
             defined via add_option().
-        (arr): Array of strings, the args of the command line call.
 
     """
-    usage = "usage: %prog [-f] hwNum";
-    parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-f", "--force", action="store_true", dest="force",
+    usage = "%(prog)s [-f] hwNum";
+    parser = argparse.ArgumentParser(usage=usage)
+    parser.add_argument("hwNum", help="number of homework to submit")
+    parser.add_argument("-f", "--force", action="store_true", dest="force",
                       help="force handin even with bad files");
-    (options, args) = parser.parse_args();
-    if (len(args) != 1):
-        parser.error("Must specify homework number as arg");
-    return (options, args);
+    parser.add_argument("-n", "--dryrun", action="store_true", dest="dryrun",
+                      help="run script without handing in");
+    return parser.parse_args();
 
 def parseConfig(configPath):
     """Parses the config JSON file. See README for how these config files must
@@ -504,7 +503,8 @@ def doHandin(hwNum, studentID, filesToSubmit):
         # Since these files passed the check, they should exist, but just in case
         if (not os.path.exists(path)):
             continue;
-        shutil.copy(path, studentDir);
+        if (not DRY):
+            shutil.copy(path, studentDir);
 
     return True;
 
@@ -802,12 +802,14 @@ def searchCfg(fileName):
     error("no config file found. Are you sure the hw number is correct?", True);
 
 def main():
-    (options, args) = getArgs();
+    args = getArgs();
 
     # Save relevant fields
-    isForced = options.force;
-    hwNum = args[0].lower();            # Make case insensitive
+    isForced = args.force;
+    hwNum = args.hwNum.lower();         # Make case insensitive
     selfID = os.getlogin().lower();     # Get student's Andrew ID
+    global DRY
+    DRY = args.dryrun
 
     # Initialize variables
     personalOutput = getOutputHeader(hwNum, selfID);
@@ -859,7 +861,11 @@ def main():
     if (attemptHandin):
         handinSuccessful = doHandin(hwNum, selfID, filesToSubmit);
         if (handinSuccessful):
-            print("\n" + handinCreated);
+            if (DRY):
+                print("\n'-n' flag specified. handin was not done")
+                print(handinNotCreated);
+            else:
+                print("\n" + handinCreated);
         else:
             print("\n" + handinNotCreated);
             return 255;
