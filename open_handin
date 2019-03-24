@@ -12,9 +12,15 @@ import optparse;
 import os;
 import subprocess;
 import csv;
+import json;
 from env import *;
 
 isVerbose = False;
+
+class ConfigError(Exception):
+    def __init__(self, message):
+        self.message = "ConfigError: " + message;
+        super(Exception, self).__init__(self.message);
 
 # Colors!
 class bcolors:
@@ -94,11 +100,34 @@ def parseCSV(csvPath, field="Andrew ID"):
         studentList.append(row[field]);
     return studentList;
 
+def searchCfg(hwNum):
+    fileName = hwNum + "_cfg.json";
+    fileList = os.listdir(CFG_DIR);
+    for f in fileList:
+        if (f.lower() == fileName.lower()):
+            return "{}/{}".format(CFG_DIR, f);
+    raise ConfigError("no config for {}".format(hwNum));
+
+def checkJson(jsonPath):
+    jsonFile = open(jsonPath, 'r')
+    try:
+        json.load(jsonFile)
+    except Exception as e:
+        msg = "error with {}: \n{}".format(jsonPath, e)
+        raise ConfigError(msg)
+
 def main():
     (options, args) = getArgs();
     hwNum = args[0];
     global isVerbose;
     isVerbose = options.isVerbose;
+
+    try:
+        path = searchCfg(hwNum)
+        checkJson(path)
+    except ConfigError as e:
+        print(e)
+        exit (255)
 
     handinDir = HANDIN_DIR + "/" + hwNum;
     print("Creating handin directories for " + hwNum + " in " + handinDir);
