@@ -484,19 +484,21 @@ def doHandin(hwNum, studentID, filesToSubmit):
     studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID;
 
     # Check if student exists in handin directory
-    if (not os.path.exists(studentDir)):
-        reason = "your handin directory was not found. Are you sure you are " + \
-                 "enrolled? Please contact course staff if the problem persists.";
-        print("");
-        error(reason);
-        return False;
-    goodPerms = checkFs(studentID, studentDir);
-    if (not goodPerms):
-        reason = "access to handin directory denied. Are you ";
-        reason += "trying to submit past the deadline? If not, please contact ";
-        reason += "course staff.";
-        error(reason);
-        return False;
+    if (not DRY):
+        if (not os.path.exists(studentDir)):
+            reason = "your handin directory was not found. Are you sure ";
+            reason += "you are enrolled? Please contact course staff if the ";
+            reason += "problem persists.";
+            print("");
+            error(reason);
+            return False;
+        goodPerms = checkFs(studentID, studentDir);
+        if (not goodPerms):
+            reason = "access to handin directory denied. Are you ";
+            reason += "trying to submit past the deadline? If not, please ";
+            reason += "contact course staff.";
+            error(reason);
+            return False;
 
     for fileName in filesToSubmit:
         path = "./" + fileName;
