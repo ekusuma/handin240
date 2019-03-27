@@ -15,14 +15,15 @@
 # Bill Nace <wnace@cmu.edu>         - Reportlab PDF generation
 # Edric Kusuma <ekusuma@cmu.edu>    - Student file handin
 
-from env import *;
+from env import *
 
-import os;
-import shutil;
-import argparse;
-import subprocess;
-import json;
-import glob;
+import os
+import shutil
+import tempfile
+import argparse
+import subprocess
+import json
+import glob
 
 import reportlab
 
@@ -37,31 +38,39 @@ from contextlib import contextmanager
 
 ###################### Some cool output formatting stuff #######################
 class bcolors:
-    HEADER = "\033[95m";
-    OKBLUE = "\033[94m";
-    OKGREEN = "\033[92m";
-    WARNING = "\033[33m";   # Darker yellow
-    #WARNING = "\033[93m";  # Yellow
-    #WARNING = "\033[95m";  # Magenta
-    FAIL = "\033[91m";
-    ENDC = "\033[0m";
-    BOLD = "\033[1m";
-    UNDERLINE = "\033[4m";
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[33m"    # Darker yellow
+    #WARNING = "\033[93m"   # Yellow
+    #WARNING = "\033[95m"   # Magenta
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 ################################################################################
 
+# Script errors defined as Exceptions
+#####################################
+class FileError(Exception):
+    def __init__(self, message):
+        className = self.__class__.__name__
+        fmtMsg = "{}: {}".format(className, message)
+        super(Exception, self).__init__(self.fmtMsg)
+
 # A line of 80 *'s, to mark beginning and end of a header
-HEADER_LEN = 80;
-HEADER_LINE = "*" * HEADER_LEN + "\n";
+HEADER_LEN = 80
+HEADER_LINE = "*" * HEADER_LEN + "\n"
 
 # Some useful constants in the scope of this script
-ERR_NOEXIST     = 0;
-ERR_NOCOMPILE   = 1;
-ERR_FAILTEST    = 2;
+ERR_NOEXIST     = 0
+ERR_NOCOMPILE   = 1
+ERR_FAILTEST    = 2
 
 # List of file types that should not be printed by reportlab
 NO_PRINT = [
     ".png"
-];
+]
 
 ################################################################################
 #                           Code for the handin script                         #
@@ -82,14 +91,14 @@ class Operation:
 
     """
     def __init__(self):
-        self.number = None;
-        self.existFiles = None;
-        self.compileFiles = None;
-        self.testFiles = None;
-        self.specificModules = None;
-        self.hasErrors = False;
-        self.err = "";
-        self.useWildcard = False;
+        self.number = None
+        self.existFiles = None
+        self.compileFiles = None
+        self.testFiles = None
+        self.specificModules = None
+        self.hasErrors = False
+        self.err = ""
+        self.useWildcard = False
 
     def checkWildcard(self):
         """Checks the list of files for wildcard specifiers, then adds files
