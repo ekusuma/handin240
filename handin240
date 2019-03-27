@@ -18,6 +18,7 @@
 from env import *
 
 import os
+import sys
 import shutil
 import tempfile
 import argparse
@@ -111,28 +112,28 @@ class Operation:
             Nothing.
 
         """
-        tempExistFiles = set();
-        tempCompileFiles = set();
+        tempExistFiles = set()
+        tempCompileFiles = set()
 
         if (self.existFiles != None):
             for f in self.existFiles:
                 if ("*" in f):
                 # Add all the wildcard files
-                    self.useWildcard = True;
-                    allFiles = set(glob.glob(f));
-                    tempExistFiles = tempExistFiles.union(allFiles);
+                    self.useWildcard = True
+                    allFiles = set(glob.glob(f))
+                    tempExistFiles = tempExistFiles.union(allFiles)
                 else:
-                    tempExistFiles.add(f);
+                    tempExistFiles.add(f)
             # Convert to a list, alphabetical order
-            self.existFiles = sorted(list(tempExistFiles));
+            self.existFiles = sorted(list(tempExistFiles))
         if (self.compileFiles != None):
             for f in self.compileFiles:
                 if ("*" in f):
-                    allFiles = set(glob.glob(f));
-                    tempCompileFiles = tempCompileFiles.union(allFiles);
+                    allFiles = set(glob.glob(f))
+                    tempCompileFiles = tempCompileFiles.union(allFiles)
                 else:
-                    tempCompileFiles.add(f);
-            self.compileFiles = sorted(list(tempCompileFiles));
+                    tempCompileFiles.add(f)
+            self.compileFiles = sorted(list(tempCompileFiles))
 
     def parseProblem(self, p):
         """Reads the config file (as a dict) and sets the appropriate
@@ -146,16 +147,16 @@ class Operation:
 
         """
         if (p["number"] != None):
-            self.number = p["number"];
+            self.number = p["number"]
         if (p["files"] != None):
-            self.existFiles = p["files"];
+            self.existFiles = p["files"]
         if (p["compileFiles"] != None):
-            self.compileFiles = p["compileFiles"];
+            self.compileFiles = p["compileFiles"]
         if (p["testFiles"] != None):
-            self.testFiles = p["testFiles"];
+            self.testFiles = p["testFiles"]
         if (p["specificModules"] != None):
-            self.specificModules = p["specificModules"];
-        self.checkWildcard();
+            self.specificModules = p["specificModules"]
+        self.checkWildcard()
 
     def getOpError(self, mainFile, errType):
         """Create a formatted error message depending on what was wrong with the
@@ -170,14 +171,14 @@ class Operation:
 
         """
         if (errType == ERR_NOEXIST):
-            errMessage = "file does not exist";
+            errMessage = "file does not exist"
         elif (errType == ERR_NOCOMPILE):
-            errMessage = "failed to compile";
+            errMessage = "failed to compile"
         elif (errType == ERR_FAILTEST):
-            errMessage = "failed TA testbench";
+            errMessage = "failed TA testbench"
         else:
             errMessage = "unspecified error"
-        return mainFile + ": " + bcolors.FAIL + errMessage + bcolors.ENDC;
+        return mainFile + ": " + bcolors.FAIL + errMessage + bcolors.ENDC
 
     def checkExistence(self):
         """Checks if every file in a file list exists within the current
@@ -191,21 +192,21 @@ class Operation:
 
         """
         if (self.useWildcard):
-            print("Files that will be handed in:");
+            print("Files that will be handed in:")
         for f in self.existFiles:
             if (not os.path.exists("./" + f)):
-                self.hasErrors = True;
-                error = self.getOpError(f, ERR_NOEXIST) + "\n";
-                print(error.strip());
-                self.err += error;
+                self.hasErrors = True
+                error = self.getOpError(f, ERR_NOEXIST) + "\n"
+                print(error.strip())
+                self.err += error
             else:
                 if (self.useWildcard):
-                    print("\t{}".format(f));
+                    print("\t{}".format(f))
                 else:
-                    print(f + ": file exists, good");
+                    print(f + ": file exists, good")
         if (self.useWildcard):
             print("If you do not wish to hand in these files, please move " +
-                    "them away from your current directory");
+                    "them away from your current directory")
 
     def checkCompilation(self):
         """Tries to compile files from a list using VCS (or vLogan+VCS), and
@@ -227,59 +228,59 @@ class Operation:
         """
         # Just in case something failed before, clean up old dir if it exists
         #   Ignore errors because they might not have the directory
-        shutil.rmtree("./temp240handin", ignore_errors=True);
+        shutil.rmtree("./temp240handin", ignore_errors=True)
         # Create temporary directory for compilation files, and cd into it
-        os.mkdir("./temp240handin");
-        os.chdir("./temp240handin");
+        os.mkdir("./temp240handin")
+        os.chdir("./temp240handin")
 
         # Actual files are located a folder up, so:
-        fileList = [];
+        fileList = []
         for fileName in self.compileFiles:
-            fileList.append("../" + fileName);  # Add "../" prefix to all files
+            fileList.append("../" + fileName)  # Add "../" prefix to all files
 
         if (self.specificModules != None):
             # Command to run vlogan with files
-            vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList;
+            vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList
             try:
-                out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT);
+                out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError, e:
-                self.hasErrors = True;
-                files = ", ".join(fileList).replace("../", "");
-                error = self.getOpError(files, ERR_NOCOMPILE) + "\n";
-                print(error.strip());
-                self.err += error;
-                self.err += e.output + "\n";
+                self.hasErrors = True
+                files = ", ".join(fileList).replace("../", "")
+                error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
+                print(error.strip())
+                self.err += error
+                self.err += e.output + "\n"
             # Should only progress to VCS compilation if no errors
             if (not self.hasErrors):
                 for module in self.specificModules:
-                    vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module];
+                    vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module]
                     try:
-                        out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT);
+                        out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
                     except subprocess.CalledProcessError, e:
-                        self.hasErrors = True;
-                        files = ", ".join(fileList).replace("../", "");
+                        self.hasErrors = True
+                        files = ", ".join(fileList).replace("../", "")
                         error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-                        print(error.strip());
-                        self.err += error;
-                        self.err += e.output + "\n";
+                        print(error.strip())
+                        self.err += error
+                        self.err += e.output + "\n"
         else:
-            vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList;
+            vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList
             try:
-                out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT);
+                out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError, e:
-                self.hasErrors = True;
-                files = ", ".join(fileList).replace("../", "");
+                self.hasErrors = True
+                files = ", ".join(fileList).replace("../", "")
                 error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-                print(error.strip());
-                self.err += error;
-                self.err += e.output + "\n";
+                print(error.strip())
+                self.err += error
+                self.err += e.output + "\n"
         if (not self.hasErrors):
-            files = ", ".join(fileList).replace("../", "");
-            print(files + ": file(s) compile, good");
+            files = ", ".join(fileList).replace("../", "")
+            print(files + ": file(s) compile, good")
 
         # Cleanup
-        os.chdir("..");
-        shutil.rmtree("./temp240handin");
+        os.chdir("..")
+        shutil.rmtree("./temp240handin")
 
     # TODO: checkTATB()
 
@@ -294,14 +295,14 @@ class Operation:
 
         """
         if (self.existFiles != None):
-            self.checkExistence();
+            self.checkExistence()
             if (self.hasErrors):
-                return self.err + "\n";
+                return self.err + "\n"
         if (self.compileFiles != None):
-            self.checkCompilation();
+            self.checkCompilation()
             if (self.hasErrors):
-                return self.err + "\n";
-        return "";
+                return self.err + "\n"
+        return ""
 
 def error(message, fatal=False):
     """Generic error handler.
@@ -319,11 +320,11 @@ def error(message, fatal=False):
         (int): A non-zero exit code, to signify an error.
 
     """
-    print(bcolors.FAIL + "ERROR: " + bcolors.ENDC + message);
+    print(bcolors.FAIL + "ERROR: " + bcolors.ENDC + message)
     if (fatal):
-        exit(255);
+        exit(255)
     else:
-        return 255;
+        return 255
 
 def warning(message):
     """Generic warning handler.
@@ -335,7 +336,7 @@ def warning(message):
         Nothing
 
     """
-    print(bcolors.WARNING + "WARNING: " +bcolors.ENDC + message);
+    print(bcolors.WARNING + "WARNING: " +bcolors.ENDC + message)
 
 def writeHeaderLine(header, filled=False):
     """Used to write a line in the header for the errors.log file.
@@ -347,18 +348,18 @@ def writeHeaderLine(header, filled=False):
         (string): Formatted header line string.
 
     """
-    maxLen = HEADER_LEN - 2;    # Beginning and ending "*"
-    header = " " + header + " ";
-    remaining = maxLen - len(header);
-    firstHalf = remaining // 2;
-    secondHalf = remaining - firstHalf;
+    maxLen = HEADER_LEN - 2    # Beginning and ending "*"
+    header = " " + header + " "
+    remaining = maxLen - len(header)
+    firstHalf = remaining // 2
+    secondHalf = remaining - firstHalf
     if (filled):
-        filler = "*";
+        filler = "*"
     else:
-        filler = " ";
+        filler = " "
     headerLine = "*" + (filler * firstHalf) + header + (filler * secondHalf) + \
-                 "*" + "\n";
-    return headerLine;
+                 "*" + "\n"
+    return headerLine
 
 def getArgs():
     """Uses argparse to get script options and args from command line.
@@ -372,14 +373,14 @@ def getArgs():
             defined via add_option().
 
     """
-    usage = "%(prog)s [-f] hwNum";
+    usage = "%(prog)s [-f] hwNum"
     parser = argparse.ArgumentParser(usage=usage)
     parser.add_argument("hwNum", help="number of homework to submit")
     parser.add_argument("-f", "--force", action="store_true", dest="force",
-                      help="force handin even with bad files");
+                      help="force handin even with bad files")
     parser.add_argument("-n", "--dryrun", action="store_true", dest="dryrun",
-                      help="run script without handing in");
-    return parser.parse_args();
+                      help="run script without handing in")
+    return parser.parse_args()
 
 def parseConfig(configPath):
     """Parses the config JSON file. See README for how these config files must
@@ -400,15 +401,15 @@ def parseConfig(configPath):
 
     """
     if (not os.path.exists(configPath)):
-        error("no such config file. Are you sure the hw number is correct?", fatal=True);
-    configFile = open(configPath, "r");
+        error("no such config file. Are you sure the hw number is correct?", fatal=True)
+    configFile = open(configPath, "r")
     try:
-        config = json.load(configFile);
+        config = json.load(configFile)
     except Exception, e:
-        print("Error parsing config file:\n{}\n\nPlease contact course staff.".format(e));
-        return None;
-    configFile.close();
-    return config;
+        print("Error parsing config file:\n{}\n\nPlease contact course staff.".format(e))
+        return None
+    configFile.close()
+    return config
 
 def createErrLog(contents, path="."):
     """Writes an errors.log file with the formatting characters removed.
@@ -421,20 +422,20 @@ def createErrLog(contents, path="."):
         Nothing.
 
     """
-    fd = open(path + "/errors.log", "w");
+    fd = open(path + "/errors.log", "w")
 
     # Remove formatting characters
-    contents = contents.replace(bcolors.HEADER, "");
-    contents = contents.replace(bcolors.OKBLUE, "");
-    contents = contents.replace(bcolors.OKGREEN, "");
-    contents = contents.replace(bcolors.WARNING, "");
-    contents = contents.replace(bcolors.FAIL, "");
-    contents = contents.replace(bcolors.ENDC, "");
-    contents = contents.replace(bcolors.BOLD, "");
-    contents = contents.replace(bcolors.UNDERLINE, "");
+    contents = contents.replace(bcolors.HEADER, "")
+    contents = contents.replace(bcolors.OKBLUE, "")
+    contents = contents.replace(bcolors.OKGREEN, "")
+    contents = contents.replace(bcolors.WARNING, "")
+    contents = contents.replace(bcolors.FAIL, "")
+    contents = contents.replace(bcolors.ENDC, "")
+    contents = contents.replace(bcolors.BOLD, "")
+    contents = contents.replace(bcolors.UNDERLINE, "")
 
-    fd.write(contents);
-    fd.close();
+    fd.write(contents)
+    fd.close()
 
 def getOutputHeader(hwNum, studentID):
     """Writes a formatted header that details hwNum and Andrew ID.
@@ -447,11 +448,11 @@ def getOutputHeader(hwNum, studentID):
         (str): Populated header.
 
     """
-    outputHeader = HEADER_LINE;
-    outputHeader += writeHeaderLine("18240: " + hwNum);
-    outputHeader += writeHeaderLine("Error log for: " + studentID);
-    outputHeader += HEADER_LINE;
-    return outputHeader;
+    outputHeader = HEADER_LINE
+    outputHeader += writeHeaderLine("18240: " + hwNum)
+    outputHeader += writeHeaderLine("Error log for: " + studentID)
+    outputHeader += HEADER_LINE
+    return outputHeader
 
 def checkFs(studentID, studentDir):
     """Checks AFS permissions for a student.
@@ -465,18 +466,18 @@ def checkFs(studentID, studentDir):
             student directory does not exist).
 
     """
-    fsCmd = ["fs", "la", studentDir];
-    perms = subprocess.check_output(fsCmd).split();
+    fsCmd = ["fs", "la", studentDir]
+    perms = subprocess.check_output(fsCmd).split()
     try:
-        idIndex = perms.index(studentID);
-        selfPerms = perms[idIndex:];
+        idIndex = perms.index(studentID)
+        selfPerms = perms[idIndex:]
     except ValueError:
         error("unable to figure out student permissions for handin dir. " +
-              "Please contact course staff if the problem persists.");
-        return False;
+              "Please contact course staff if the problem persists.")
+        return False
 
     # Has write permissions
-    return "rlidwk" in selfPerms[1];
+    return "rlidwk" in selfPerms[1]
 
 def doHandin(hwNum, studentID, filesToSubmit):
     """Perform the handin tasks. Prints relevant errors on failures.
@@ -490,34 +491,34 @@ def doHandin(hwNum, studentID, filesToSubmit):
         (bool): True on success, False on failure.
 
     """
-    studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID;
+    studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID
 
     # Check if student exists in handin directory
     if (not DRY):
         if (not os.path.exists(studentDir)):
-            reason = "your handin directory was not found. Are you sure ";
-            reason += "you are enrolled? Please contact course staff if the ";
-            reason += "problem persists.";
-            print("");
-            error(reason);
-            return False;
-        goodPerms = checkFs(studentID, studentDir);
+            reason = "your handin directory was not found. Are you sure "
+            reason += "you are enrolled? Please contact course staff if the "
+            reason += "problem persists."
+            print("")
+            error(reason)
+            return False
+        goodPerms = checkFs(studentID, studentDir)
         if (not goodPerms):
-            reason = "access to handin directory denied. Are you ";
-            reason += "trying to submit past the deadline? If not, please ";
-            reason += "contact course staff.";
-            error(reason);
-            return False;
+            reason = "access to handin directory denied. Are you "
+            reason += "trying to submit past the deadline? If not, please "
+            reason += "contact course staff."
+            error(reason)
+            return False
 
     for fileName in filesToSubmit:
-        path = "./" + fileName;
+        path = "./" + fileName
         # Since these files passed the check, they should exist, but just in case
         if (not os.path.exists(path)):
-            continue;
+            continue
         if (not DRY):
-            shutil.copy(path, studentDir);
+            shutil.copy(path, studentDir)
 
-    return True;
+    return True
 
 
 ################################################################################
@@ -755,21 +756,21 @@ def makePDF(hwNum, student, problemDictList):
     cfgPath = CFG_DIR + "/" + hwNum + "_cfg.json"
     # TODO: make this more graceful
     for prob in problemDictList:
-        tempFiles = set();
+        tempFiles = set()
         if (prob["files"] != None):
             for f in prob["files"]:
                 if ("*" in f):
-                    toSkip = False;
+                    toSkip = False
                     for bad in NO_PRINT:
                         if (bad in f):
-                            toSkip = True;
+                            toSkip = True
                     if (toSkip):
-                        continue;
-                    allFiles = set(glob.glob(f));
-                    tempFiles = tempFiles.union(allFiles);
+                        continue
+                    allFiles = set(glob.glob(f))
+                    tempFiles = tempFiles.union(allFiles)
                 else:
-                    tempFiles.add(f);
-        prob["files"] = sorted(list(tempFiles));
+                    tempFiles.add(f)
+        prob["files"] = sorted(list(tempFiles))
 
     hw_dict = {'number' : hwNum, 'problems' : problemDictList,
                'student' : student}
@@ -787,14 +788,14 @@ def makeOpArray(config):
         ([Operation]): Array of problem ops.
 
     """
-    opArray = [];
+    opArray = []
     # Sort problem config array by problem number
-    config = sorted(config, key=lambda p: p["number"]);
+    config = sorted(config, key=lambda p: p["number"])
     for problem in config:
-        op = Operation();
-        op.parseProblem(problem);
-        opArray.append(op);
-    return opArray;
+        op = Operation()
+        op.parseProblem(problem)
+        opArray.append(op)
+    return opArray
 
 def searchCfg(fileName):
     """Case-insensitive search for a target config file in CFG_DIR.
@@ -806,92 +807,92 @@ def searchCfg(fileName):
         (str): Path to the config file.
 
     """
-    fileList = os.listdir(CFG_DIR);
+    fileList = os.listdir(CFG_DIR)
     for f in fileList:
         if (f.lower() == fileName.lower()):
-            return "{}/{}".format(CFG_DIR, f);
-    error("no config file found. Are you sure the hw number is correct?", True);
+            return "{}/{}".format(CFG_DIR, f)
+    error("no config file found. Are you sure the hw number is correct?", True)
 
 def main():
-    args = getArgs();
+    args = getArgs()
 
     # Save relevant fields
-    isForced = args.force;
-    hwNum = args.hwNum.lower();         # Make case insensitive
-    selfID = os.getlogin().lower();     # Get student's Andrew ID
+    isForced = args.force
+    hwNum = args.hwNum.lower()         # Make case insensitive
+    selfID = os.getlogin().lower()     # Get student's Andrew ID
     global DRY
     DRY = args.dryrun
 
     # Initialize variables
-    personalOutput = getOutputHeader(hwNum, selfID);
-    hasAnyErrors = False;
-    filesToSubmit = set();
+    personalOutput = getOutputHeader(hwNum, selfID)
+    hasAnyErrors = False
+    filesToSubmit = set()
 
     # Parse config file and do relevant operations
-    cfgPath = searchCfg("{}_cfg.json".format(hwNum));
+    cfgPath = searchCfg("{}_cfg.json".format(hwNum))
     # Take the proper (case-sensitive) hwNum
-    hwNum = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")];
-    config = parseConfig(CFG_DIR + "/" + hwNum + "_cfg.json");
+    hwNum = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
+    config = parseConfig(CFG_DIR + "/" + hwNum + "_cfg.json")
     if (config == None):
-        exit(255);
-    opArray = makeOpArray(config);
+        exit(255)
+    opArray = makeOpArray(config)
 
     for op in opArray:
         if (op.existFiles != None):
-            filesToSubmit = filesToSubmit.union(set(op.existFiles));
+            filesToSubmit = filesToSubmit.union(set(op.existFiles))
         if (op.compileFiles != None):
-            filesToSubmit = filesToSubmit.union(set(op.compileFiles));
-        errString = op.do();
+            filesToSubmit = filesToSubmit.union(set(op.compileFiles))
+        errString = op.do()
         if (op.hasErrors):
-            hasAnyErrors = True;
-            personalOutput += writeHeaderLine("Problem {}".format(op.number), True);
-            personalOutput += errString;
+            hasAnyErrors = True
+            personalOutput += writeHeaderLine("Problem {}".format(op.number), True)
+            personalOutput += errString
 
     # Result strings WITH COLORS \o/
-    handinCreated = bcolors.OKGREEN + "Handin complete." + bcolors.ENDC;
-    handinNotCreated = bcolors.FAIL + "Handin not complete." + bcolors.ENDC;
+    handinCreated = bcolors.OKGREEN + "Handin complete." + bcolors.ENDC
+    handinNotCreated = bcolors.FAIL + "Handin not complete." + bcolors.ENDC
 
-    attemptHandin = True;
+    attemptHandin = True
     # Check if handin had any errors
     if (hasAnyErrors):
-        warning = bcolors.WARNING + "WARNING: " + bcolors.ENDC;
-        print("\n" + warning + "errors detected! See errors.log for details.\n");
-        createErrLog(personalOutput);
+        warning = bcolors.WARNING + "WARNING: " + bcolors.ENDC
+        print("\n" + warning + "errors detected! See errors.log for details.\n")
+        createErrLog(personalOutput)
         if (not isForced):
-            attemptHandin = False;
+            attemptHandin = False
             print("If you wish to submit an incomplete homework, then run the " +
-            "handin script again with the '-f' flag.");
+            "handin script again with the '-f' flag.")
         else:
             print(warning + "you are attempting to submit homework with errors! " +
-                  "You will NOT receive any credit for files with errors.\n");
-            formatStr = "If this is intentional on your part, type '{}' and press Enter: ";
-            agreement = raw_input(formatStr.format(hwNum));
+                  "You will NOT receive any credit for files with errors.\n")
+            formatStr = "If this is intentional on your part, type '{}' and press Enter: "
+            agreement = raw_input(formatStr.format(hwNum))
             if (agreement != hwNum):
-                attemptHandin = False;
+                attemptHandin = False
 
     if (attemptHandin):
-        handinSuccessful = doHandin(hwNum, selfID, filesToSubmit);
+        handinSuccessful = doHandin(hwNum, selfID, filesToSubmit)
         if (handinSuccessful):
             if (DRY):
                 print("\n'-n' flag specified. handin was not done")
-                print(handinNotCreated);
+                print(handinNotCreated)
             else:
-                print("\n" + handinCreated);
+                print("\n" + handinCreated)
         else:
-            print("\n" + handinNotCreated);
-            return 255;
+            print("\n" + handinNotCreated)
+            return 255
         # Create output PDF
-        makePDF(hwNum, selfID, config);
-        formatStr = "\nCode printout created as {}_code.pdf. Please check ";
-        formatStr += "that there are no errors in the PDF.";
-        print(formatStr.format(hwNum));
+        makePDF(hwNum, selfID, config)
+        formatStr = "\nCode printout created as {}_code.pdf. Please check "
+        formatStr += "that there are no errors in the PDF."
+        print(formatStr.format(hwNum))
         print(bcolors.WARNING + "Please don't forget to submit this PDF to Gradescope!"
-                + bcolors.ENDC);
+                + bcolors.ENDC)
         print(bcolors.WARNING + "Also don't forget your written homework!"
-                + bcolors.ENDC);
-        return 0;
+                + bcolors.ENDC)
+        return 0
     else:
-        print("\n" + handinNotCreated);
-        return 255;
+        print("\n" + handinNotCreated)
+        return 255
 
-exit(main());
+sys.exit(main())
