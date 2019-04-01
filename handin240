@@ -74,11 +74,13 @@ ERR_UNKNOWN     = 255
 #####################################
 class Handin240Error(Exception):
     def __init__(self, message):
-        className = self.__class__.__name__
-        fmtMsg = "{}{}{}: {}".format(bcolors.FAIL, className, bcolors.ENDC,
-                message)
-        super(Exception, self).__init__(fmtMsg)
+        errMsg = self.getError(message)
+        super(Exception, self).__init__(errMsg)
         self.errno = ERR_UNKNOWN
+
+    def getError(self, msg):
+        className = self.__class__.__name__
+        return "{}{}{}: {}".format(bcolors.FAIL, className, bcolors.ENDC, msg)
 
 class FileError(Handin240Error):
     def __init__(self, files):
@@ -86,7 +88,8 @@ class FileError(Handin240Error):
             fileStr = ", ".join(files)
         else:
             fileStr = files
-        errMsg = "{}: files do not exist"
+        msg = "{}: files do not exist".format(fileStr)
+        errMsg = self.getError(msg)
         super(Handin240Error, self).__init__(errMsg)
         self.errno = ERR_NOEXIST
 
@@ -94,7 +97,8 @@ class NoConfigError(Handin240Error):
     def __init__(self, hwNum):
         msg = "no config for {} found. ".format(hwNum)
         msg += "Are you sure the HW number is correct?"
-        super(Handin240Error, self).__init__(msg)
+        errMsg = self.getError(msg)
+        super(Handin240Error, self).__init__(errMsg)
         self.errno = ERR_NOCONFIG
 
 class ParseConfigError(Handin240Error):
@@ -105,7 +109,8 @@ class HandinDirError(Handin240Error):
         msg = "your handin directory was not found. Are you sure "
         msg += "you are enrolled? Please contact course staff if the "
         msg += "problem persists."
-        super(Handin240Error, self).__init__(msg)
+        errMsg = self.getError(msg)
+        super(Handin240Error, self).__init__(errMsg)
         self.errno = ERR_HANDIN_DIR
 
 class HandinPermError(Handin240Error):
@@ -113,7 +118,8 @@ class HandinPermError(Handin240Error):
         msg = "access to handin directory denied. Are you "
         msg += "trying to submit past the deadline? If not, please "
         msg += "contact course staff."
-        super(Handin240Error, self).__init__(msg)
+        errMsg = self.getError(msg)
+        super(Handin240Error, self).__init__(errMsg)
         self.errno = ERR_HANDIN_PERM
 
 # A line of 80 *'s, to mark beginning and end of a header
@@ -492,11 +498,10 @@ def createErrLog(contents, path="."):
     fd.write(contents)
     fd.close()
 
-def getOutputHeader(hwNum, studentID):
+def getOutputHeader(studentID):
     """Writes a formatted header that details hwNum and Andrew ID.
 
     Args:
-        hwNum (str): Number of assignment (i.e. 'hw1').
         studentID (str): Andrew ID of the student.
 
     Returns:
@@ -504,7 +509,7 @@ def getOutputHeader(hwNum, studentID):
 
     """
     outputHeader = HEADER_LINE
-    outputHeader += writeHeaderLine("18240: " + hwNum)
+    outputHeader += writeHeaderLine("18240: " + HW_NUM)
     outputHeader += writeHeaderLine("Error log for: " + studentID)
     outputHeader += HEADER_LINE
     return outputHeader
@@ -804,8 +809,8 @@ class HW_Code_Maker:
                     self.line_number += 1
         self.canvas.showPage()
 
-def makePDF(hwNum, student, problemDictList):
-    cfgPath = CFG_DIR + "/" + hwNum + "_cfg.json"
+def makePDF(student, problemDictList):
+    cfgPath = CFG_DIR + "/" + HW_NUM + "_cfg.json"
     # TODO: make this more graceful
     for prob in problemDictList:
         tempFiles = set()
@@ -824,7 +829,7 @@ def makePDF(hwNum, student, problemDictList):
                     tempFiles.add(f)
         prob["files"] = sorted(list(tempFiles))
 
-    hw_dict = {'number' : hwNum, 'problems' : problemDictList,
+    hw_dict = {'number' : HW_NUM, 'problems' : problemDictList,
                'student' : student}
 
     maker = HW_Code_Maker(**hw_dict)
@@ -916,16 +921,16 @@ def main():
 
     # Initialize variables
     selfID = os.getlogin().lower()  # Get student's Andrew ID
-    personalOutput = getOutputHeader(hwNum, selfID)
 
     try:
         # Parse config file and do relevant operations
-        cfgPath = searchCfg("{}_cfg.json".format(hwNum))
-        # Take the proper (case-sensitive) hwNum
+        cfgPath = searchCfg("{}_cfg.json".format(HW_NUM))
+        # Take the proper (case-sensitive) HW_NUM
         HW_NUM = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
         config = parseConfig(CFG_DIR + "/" + HW_NUM + "_cfg.json")
         opArray = makeOpArray(config)
         (filesToSubmit, hasAnyErrors, errString) = doOpArray(opArray)
+        personalOutput = getOutputHeader(selfID)
         personalOutput += errString
     except (KeyboardInterrupt, SystemExit):
         raise
@@ -954,7 +959,7 @@ def main():
                 print("\n" + handinCreated)
                 status = HANDIN_YES
             # Create output PDF
-            makePDF(HW_NUM, selfID, config)
+            makePDF(selfID, config)
             printHandinComplete()
             return status
         except (KeyboardInterrupt, SystemExit):
