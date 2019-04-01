@@ -49,28 +49,82 @@ class bcolors:
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
+
 ################################################################################
+
+# Return values
+###############
+HANDIN_YES      = 0
+HANDIN_NO       = 1
+
+# Error codes
+#############
+ERR_CONFIG      = 100
+ERR_NOCONFIG    = 101
+ERR_BADCONFIG   = 102
+ERR_OP          = 200
+ERR_NOEXIST     = 201
+ERR_NOCOMPILE   = 202
+ERR_FAILTEST    = 203
+ERR_HANDIN_DIR  = 210
+ERR_HANDIN_PERM = 211
+ERR_UNKNOWN     = 255
 
 # Script errors defined as Exceptions
 #####################################
-class FileError(Exception):
+class Handin240Error(Exception):
     def __init__(self, message):
         className = self.__class__.__name__
-        fmtMsg = "{}: {}".format(className, message)
-        super(Exception, self).__init__(self.fmtMsg)
+        fmtMsg = "{}{}{}: {}".format(bcolors.FAIL, className, bcolors.ENDC,
+                message)
+        super(Exception, self).__init__(fmtMsg)
+        self.errno = ERR_UNKNOWN
+
+class FileError(Handin240Error):
+    def __init__(self, files):
+        if (isinstance(files, list)):
+            fileStr = ", ".join(files)
+        else:
+            fileStr = files
+        errMsg = "{}: files do not exist"
+        super(Handin240Error, self).__init__(errMsg)
+        self.errno = ERR_NOEXIST
+
+class NoConfigError(Handin240Error):
+    def __init__(self, hwNum):
+        msg = "no config for {} found. ".format(hwNum)
+        msg += "Are you sure the HW number is correct?"
+        super(Handin240Error, self).__init__(msg)
+        self.errno = ERR_NOCONFIG
+
+class ParseConfigError(Handin240Error):
+    pass
+
+class HandinDirError(Handin240Error):
+    def __init__(self):
+        msg = "your handin directory was not found. Are you sure "
+        msg += "you are enrolled? Please contact course staff if the "
+        msg += "problem persists."
+        super(Handin240Error, self).__init__(msg)
+        self.errno = ERR_HANDIN_DIR
+
+class HandinPermError(Handin240Error):
+    def __init__(self):
+        msg = "access to handin directory denied. Are you "
+        msg += "trying to submit past the deadline? If not, please "
+        msg += "contact course staff."
+        super(Handin240Error, self).__init__(msg)
+        self.errno = ERR_HANDIN_PERM
 
 # A line of 80 *'s, to mark beginning and end of a header
 HEADER_LEN = 80
 HEADER_LINE = "*" * HEADER_LEN + "\n"
 
-# Some useful constants in the scope of this script
-ERR_NOEXIST     = 0
-ERR_NOCOMPILE   = 1
-ERR_FAILTEST    = 2
-
 # List of file types that should not be printed by reportlab
 NO_PRINT = [
-    ".png"
+    ".png",
+    ".jpg",
+    ".jpeg"
 ]
 
 ################################################################################
@@ -401,15 +455,16 @@ def parseConfig(configPath):
 
     """
     if (not os.path.exists(configPath)):
-        error("no such config file. Are you sure the hw number is correct?", fatal=True)
+        raise NoConfigError(HW_NUM)
     configFile = open(configPath, "r")
     try:
-        config = json.load(configFile)
+        return json.load(configFile)
     except Exception, e:
-        print("Error parsing config file:\n{}\n\nPlease contact course staff.".format(e))
-        return None
-    configFile.close()
-    return config
+        msg = "Error parsing config file:\n{}\n\n".format(e)
+        msg += "Please contact course staff."
+        raise ParseConfigError(msg)
+    finally:
+        configFile.close()
 
 def createErrLog(contents, path="."):
     """Writes an errors.log file with the formatting characters removed.
@@ -479,11 +534,10 @@ def checkFs(studentID, studentDir):
     # Has write permissions
     return "rlidwk" in selfPerms[1]
 
-def doHandin(hwNum, studentID, filesToSubmit):
+def doHandin(studentID, filesToSubmit):
     """Perform the handin tasks. Prints relevant errors on failures.
 
     Args:
-        hwNum (str): Name of the assignment.
         studentID (str): Student's Andrew ID.
         filesToSubmit (set): List of all files to be copied to the handin dir.
 
@@ -491,34 +545,32 @@ def doHandin(hwNum, studentID, filesToSubmit):
         (bool): True on success, False on failure.
 
     """
-    studentDir = HANDIN_DIR + "/" + hwNum + "/" + studentID
+    if (DRY):
+        return
 
+    studentDir = HANDIN_DIR + "/" + HW_NUM + "/" + studentID
     # Check if student exists in handin directory
-    if (not DRY):
-        if (not os.path.exists(studentDir)):
-            reason = "your handin directory was not found. Are you sure "
-            reason += "you are enrolled? Please contact course staff if the "
-            reason += "problem persists."
-            print("")
-            error(reason)
-            return False
-        goodPerms = checkFs(studentID, studentDir)
-        if (not goodPerms):
-            reason = "access to handin directory denied. Are you "
-            reason += "trying to submit past the deadline? If not, please "
-            reason += "contact course staff."
-            error(reason)
-            return False
+    if (not os.path.exists(studentDir)):
+        raise HandinDirError()
+    goodPerms = checkFs(studentID, studentDir)
+    if (not goodPerms):
+        raise HandinPermError()
 
     for fileName in filesToSubmit:
         path = "./" + fileName
         # Since these files passed the check, they should exist, but just in case
         if (not os.path.exists(path)):
             continue
-        if (not DRY):
-            shutil.copy(path, studentDir)
+        shutil.copy(path, studentDir)
 
-    return True
+def printHandinComplete():
+    formatStr = "\nCode printout created as {}_code.pdf. Please check "
+    formatStr += "that there are no errors in the PDF."
+    print(formatStr.format(HW_NUM))
+    print(bcolors.WARNING + "Please don't forget to submit this PDF to Gradescope!"
+            + bcolors.ENDC)
+    print(bcolors.WARNING + "Also don't forget your written homework!"
+            + bcolors.ENDC)
 
 
 ################################################################################
@@ -797,6 +849,23 @@ def makeOpArray(config):
         opArray.append(op)
     return opArray
 
+def doOpArray(opArray):
+    resultString = ""
+    hasErrors = False
+    filesToSubmit = set()
+
+    for op in opArray:
+        if (op.existFiles != None):
+            filesToSubmit = filesToSubmit.union(set(op.existFiles))
+        if (op.compileFiles != None):
+            filesToSubmit = filesToSubmit.union(set(op.compileFiles))
+        errString = op.do()
+        if (op.hasErrors):
+            hasErrors = True
+            resultString += writeHeaderLine("Problem {}".format(op.number), True)
+            resultString += errString
+    return (filesToSubmit, hasErrors, resultString)
+
 def searchCfg(fileName):
     """Case-insensitive search for a target config file in CFG_DIR.
 
@@ -811,88 +880,94 @@ def searchCfg(fileName):
     for f in fileList:
         if (f.lower() == fileName.lower()):
             return "{}/{}".format(CFG_DIR, f)
-    error("no config file found. Are you sure the hw number is correct?", True)
+    raise NoConfigError(HW_NUM)
+
+def handinPrecheck(hasErrors, personalOutput):
+    if (not hasErrors):
+        return True
+
+    attemptHandin = True
+    warning = bcolors.WARNING + "WARNING: " + bcolors.ENDC
+    print("\n" + warning + "errors detected! See errors.log for details.\n")
+    createErrLog(personalOutput)
+    if (not FORCED):
+        attemptHandin = False
+        print("If you wish to submit an incomplete homework, then run the " +
+        "handin script again with the '-f' flag.")
+    else:
+        print(warning + "you are attempting to submit homework with errors! " +
+              "You will NOT receive any credit for files with errors.\n")
+        formatStr = "If this is intentional on your part, type '{}' and press Enter: "
+        agreement = raw_input(formatStr.format(HW_NUM))
+        if (agreement != HW_NUM):
+            attemptHandin = False
+    return attemptHandin
 
 def main():
     args = getArgs()
 
     # Save relevant fields
-    isForced = args.force
-    hwNum = args.hwNum.lower()         # Make case insensitive
-    selfID = os.getlogin().lower()     # Get student's Andrew ID
+    global FORCED
+    FORCED = args.force
+    global HW_NUM
+    HW_NUM = args.hwNum.lower()     # Make case insensitive
     global DRY
     DRY = args.dryrun
 
     # Initialize variables
+    selfID = os.getlogin().lower()  # Get student's Andrew ID
     personalOutput = getOutputHeader(hwNum, selfID)
-    hasAnyErrors = False
-    filesToSubmit = set()
 
-    # Parse config file and do relevant operations
-    cfgPath = searchCfg("{}_cfg.json".format(hwNum))
-    # Take the proper (case-sensitive) hwNum
-    hwNum = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
-    config = parseConfig(CFG_DIR + "/" + hwNum + "_cfg.json")
-    if (config == None):
-        exit(255)
-    opArray = makeOpArray(config)
-
-    for op in opArray:
-        if (op.existFiles != None):
-            filesToSubmit = filesToSubmit.union(set(op.existFiles))
-        if (op.compileFiles != None):
-            filesToSubmit = filesToSubmit.union(set(op.compileFiles))
-        errString = op.do()
-        if (op.hasErrors):
-            hasAnyErrors = True
-            personalOutput += writeHeaderLine("Problem {}".format(op.number), True)
-            personalOutput += errString
+    try:
+        # Parse config file and do relevant operations
+        cfgPath = searchCfg("{}_cfg.json".format(hwNum))
+        # Take the proper (case-sensitive) hwNum
+        HW_NUM = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
+        config = parseConfig(CFG_DIR + "/" + HW_NUM + "_cfg.json")
+        opArray = makeOpArray(config)
+        (filesToSubmit, hasAnyErrors, errString) = doOpArray(opArray)
+        personalOutput += errString
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except (Handin240Error) as e:
+        print(e)
+        return e.errno
+    except:
+        print("Encountered unknown error.")
+        return ERR_UNKNOWN
 
     # Result strings WITH COLORS \o/
     handinCreated = bcolors.OKGREEN + "Handin complete." + bcolors.ENDC
     handinNotCreated = bcolors.FAIL + "Handin not complete." + bcolors.ENDC
 
-    attemptHandin = True
     # Check if handin had any errors
-    if (hasAnyErrors):
-        warning = bcolors.WARNING + "WARNING: " + bcolors.ENDC
-        print("\n" + warning + "errors detected! See errors.log for details.\n")
-        createErrLog(personalOutput)
-        if (not isForced):
-            attemptHandin = False
-            print("If you wish to submit an incomplete homework, then run the " +
-            "handin script again with the '-f' flag.")
-        else:
-            print(warning + "you are attempting to submit homework with errors! " +
-                  "You will NOT receive any credit for files with errors.\n")
-            formatStr = "If this is intentional on your part, type '{}' and press Enter: "
-            agreement = raw_input(formatStr.format(hwNum))
-            if (agreement != hwNum):
-                attemptHandin = False
+    attemptHandin = handinPrecheck(hasAnyErrors, personalOutput)
 
     if (attemptHandin):
-        handinSuccessful = doHandin(hwNum, selfID, filesToSubmit)
-        if (handinSuccessful):
+        try:
+            doHandin(selfID, filesToSubmit)
             if (DRY):
-                print("\n'-n' flag specified. handin was not done")
+                print("\n'-n' flag specified. Handin was not done")
                 print(handinNotCreated)
+                status = HANDIN_NO
             else:
                 print("\n" + handinCreated)
-        else:
+                status = HANDIN_YES
+            # Create output PDF
+            makePDF(HW_NUM, selfID, config)
+            printHandinComplete()
+            return status
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except (Handin240Error) as e:
+            print(e)
             print("\n" + handinNotCreated)
-            return 255
-        # Create output PDF
-        makePDF(hwNum, selfID, config)
-        formatStr = "\nCode printout created as {}_code.pdf. Please check "
-        formatStr += "that there are no errors in the PDF."
-        print(formatStr.format(hwNum))
-        print(bcolors.WARNING + "Please don't forget to submit this PDF to Gradescope!"
-                + bcolors.ENDC)
-        print(bcolors.WARNING + "Also don't forget your written homework!"
-                + bcolors.ENDC)
-        return 0
+            return HANDIN_NO
+        except:
+            print("Encountered unknown error.")
+            return ERR_UNKNOWN
     else:
         print("\n" + handinNotCreated)
-        return 255
+        return HANDIN_NO
 
 sys.exit(main())
