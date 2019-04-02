@@ -268,6 +268,17 @@ class Operation:
             print("If you do not wish to hand in these files, please move " +
                     "them away from your current directory")
 
+    def removeOldDir(self, fileList, oldDir):
+        return ", ".join(fileList).replace("{}/".format(oldDir), "")
+
+    def compilationErrHandler(self, fileList, oldDir):
+        self.hasErrors = True
+        files = self.removeOldDir(fileList, oldDir)
+        error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
+        print(error.strip())
+        self.err += error
+        self.err += e.output + "\n"
+
     def checkCompilation(self):
         """Tries to compile files from a list using VCS (or vLogan+VCS), and
         checks to see if any compilation errors arise.
@@ -286,61 +297,47 @@ class Operation:
             Nothing.
 
         """
-        # Just in case something failed before, clean up old dir if it exists
-        #   Ignore errors because they might not have the directory
-        shutil.rmtree("./temp240handin", ignore_errors=True)
-        # Create temporary directory for compilation files, and cd into it
-        os.mkdir("./temp240handin")
-        os.chdir("./temp240handin")
-
-        # Actual files are located a folder up, so:
+        # Preserve old directory to return to
+        oldDir = os.getcwd()
+        # Actual files are located in a different directory, so:
         fileList = []
         for fileName in self.compileFiles:
-            fileList.append("../" + fileName)  # Add "../" prefix to all files
+            fileList.append("{}/{}".format(oldDir, fileName))
+        # Use tempfile's temporary directory creation. We must delete after done
+        tempDir = tempfile.mkdtemp()
+        os.chdir(tempDir)
 
-        if (self.specificModules != None):
-            # Command to run vlogan with files
-            vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList
-            try:
-                out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError, e:
-                self.hasErrors = True
-                files = ", ".join(fileList).replace("../", "")
-                error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-                print(error.strip())
-                self.err += error
-                self.err += e.output + "\n"
-            # Should only progress to VCS compilation if no errors
-            if (not self.hasErrors):
+        try:
+            if (self.specificModules != None):
+                # Command to run vlogan with files
+                vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList
+                try:
+                    out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError, e:
+                    self.compilationErrHandler(fileList, oldDir)
+                    return
                 for module in self.specificModules:
                     vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module]
                     try:
                         out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
                     except subprocess.CalledProcessError, e:
-                        self.hasErrors = True
-                        files = ", ".join(fileList).replace("../", "")
-                        error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-                        print(error.strip())
-                        self.err += error
-                        self.err += e.output + "\n"
-        else:
-            vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList
-            try:
-                out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError, e:
-                self.hasErrors = True
+                        self.compilationErrHandler(fileList, oldDir)
+            else:
+                vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList
+                try:
+                    out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError, e:
+                    self.compilationErrHandler(fileList, oldDir)
+            if (not self.hasErrors):
                 files = ", ".join(fileList).replace("../", "")
-                error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-                print(error.strip())
-                self.err += error
-                self.err += e.output + "\n"
-        if (not self.hasErrors):
-            files = ", ".join(fileList).replace("../", "")
-            print(files + ": file(s) compile, good")
-
-        # Cleanup
-        os.chdir("..")
-        shutil.rmtree("./temp240handin")
+                print(files + ": file(s) compile, good")
+            return
+        except (KeyboardInterrupt):
+            raise
+        finally:
+            # Cleanup
+            os.chdir(oldDir)
+            shutil.rmtree(tempDir)
 
     # TODO: checkTATB()
 
