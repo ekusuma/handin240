@@ -271,13 +271,13 @@ class Operation:
     def removeOldDir(self, fileList, oldDir):
         return ", ".join(fileList).replace("{}/".format(oldDir), "")
 
-    def compilationErrHandler(self, fileList, oldDir):
+    def compilationErrHandler(self, fileList, oldDir, err):
         self.hasErrors = True
         files = self.removeOldDir(fileList, oldDir)
         error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
         print(error.strip())
         self.err += error
-        self.err += e.output + "\n"
+        self.err += err.output + "\n"
 
     def checkCompilation(self):
         """Tries to compile files from a list using VCS (or vLogan+VCS), and
@@ -314,22 +314,22 @@ class Operation:
                 try:
                     out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError, e:
-                    self.compilationErrHandler(fileList, oldDir)
+                    self.compilationErrHandler(fileList, oldDir, e)
                     return
                 for module in self.specificModules:
                     vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module]
                     try:
                         out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
                     except subprocess.CalledProcessError, e:
-                        self.compilationErrHandler(fileList, oldDir)
+                        self.compilationErrHandler(fileList, oldDir, e)
             else:
                 vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList
                 try:
                     out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError, e:
-                    self.compilationErrHandler(fileList, oldDir)
+                    self.compilationErrHandler(fileList, oldDir, e)
             if (not self.hasErrors):
-                files = ", ".join(fileList).replace("../", "")
+                files = self.removeOldDir(fileList, oldDir)
                 print(files + ": file(s) compile, good")
             return
         except (KeyboardInterrupt):
