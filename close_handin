@@ -53,6 +53,7 @@ conf.read('config.ini')
 STAFF_DIR   = conf.get('DEFAULT', 'STAFF_DIR')
 HANDIN_DIR  = conf.get('HANDIN', 'HANDIN_DIR')
 CFG_DIR     = conf.get('HANDIN', 'CFG_DIR')
+RESULTS_DIR = conf.get('ADMIN', 'RESULTS_DIR')
 
 ################################################################################
 #                           Code for compilation check                         #
@@ -416,7 +417,7 @@ def checkStudent(studentDir, opArray):
     return (hasAnyErrors, personalOutput)
 
 def writeResults(strArr):
-    path = "{}/handinResults/{}_results.txt".format(STAFF_DIR, HW_NUM)
+    path = "{}/{}_results.txt".format(RESULTS_DIR, HW_NUM)
     if (len(strArr) < 1):
         return
     fd = open(path, "w")
