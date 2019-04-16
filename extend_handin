@@ -96,4 +96,4 @@ def main():
         print("Extensions granted for " + names)
     return 0
 
-exit(main())
+sys.exit(main())
