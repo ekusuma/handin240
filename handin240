@@ -15,8 +15,7 @@
 # Bill Nace <wnace@cmu.edu>         - Reportlab PDF generation
 # Edric Kusuma <ekusuma@cmu.edu>    - Student file handin
 
-from env import *
-
+import ConfigParser
 import os
 import sys
 import shutil
@@ -69,6 +68,15 @@ ERR_FAILTEST    = 203
 ERR_HANDIN_DIR  = 210
 ERR_HANDIN_PERM = 211
 ERR_UNKNOWN     = 255
+
+# Initialize config file
+########################
+conf = ConfigParser.ConfigParser()
+conf.read('config.ini')
+
+HANDIN_DIR  = conf.get('HANDIN', 'HANDIN_DIR')
+CFG_DIR     = conf.get('HANDIN', 'CFG_DIR')
+FONT_DIR    = conf.get('PDF', 'FONT_DIR')
 
 # Script errors defined as Exceptions
 #####################################
