@@ -11,35 +11,52 @@
 #
 # Requires TA/staff permissions for this to work properly.
 #
-# This script should be run as soon as the hw deadline is passed
+# This script should be run as soon as the hw deadline is passed, or schedule a
+# close time using the `-t` option.
 #
 # Edric Kusuma <ekusuma@cmu.edu>
 
-import optparse
+import ConfigParser
 import os
-import time
+import sys
+import shutil
+import tempfile
+import argparse
 import subprocess
 import json
-import shutil
-import sys
-from env import *
+import glob
+import time
 
 ###################### Some cool output formatting stuff #######################
 class bcolors:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
     OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
+    WARNING = "\033[33m"
     FAIL = "\033[91m"
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
+
 ################################################################################
 
 # Some useful constants in the scope of this script
 ERR_NOEXIST     = 0
 ERR_NOCOMPILE   = 1
 ERR_FAILTEST    = 2
+
+# Initialize config file
+########################
+conf = ConfigParser.ConfigParser()
+conf.read('config.ini')
+
+STAFF_DIR   = conf.get('DEFAULT', 'STAFF_DIR')
+HANDIN_DIR  = conf.get('HANDIN', 'HANDIN_DIR')
+CFG_DIR     = conf.get('HANDIN', 'CFG_DIR')
+
+################################################################################
+#                           Code for compilation check                         #
+################################################################################
 
 class Operation:
     def __init__(self):
@@ -50,10 +67,45 @@ class Operation:
         self.specificModules = None
         self.hasErrors = False
         self.err = ""
+        self.useWildcard = False
 
     def clearErrors(self):
         self.hasErrors = False
         self.err = ""
+
+    def checkWildcard(self):
+        """Checks the list of files for wildcard specifiers, then adds files
+        that satisfy the wildcard(s) to the list.
+
+        Args:
+            Nothing.
+
+        Returns:
+            Nothing.
+
+        """
+        tempExistFiles = set()
+        tempCompileFiles = set()
+
+        if (self.existFiles != None):
+            for f in self.existFiles:
+                if ("*" in f):
+                # Add all the wildcard files
+                    self.useWildcard = True
+                    allFiles = set(glob.glob(f))
+                    tempExistFiles = tempExistFiles.union(allFiles)
+                else:
+                    tempExistFiles.add(f)
+            # Convert to a list, alphabetical order
+            self.existFiles = sorted(list(tempExistFiles))
+        if (self.compileFiles != None):
+            for f in self.compileFiles:
+                if ("*" in f):
+                    allFiles = set(glob.glob(f))
+                    tempCompileFiles = tempCompileFiles.union(allFiles)
+                else:
+                    tempCompileFiles.add(f)
+            self.compileFiles = sorted(list(tempCompileFiles))
 
     def parseProblem(self, p):
         if (p["number"] != None):
@@ -66,6 +118,7 @@ class Operation:
             self.testFiles = p["testFiles"]
         if (p["specificModules"] != None):
             self.specificModules = p["specificModules"]
+        self.checkWildcard()
 
     def getOpError(self, mainFile, errType):
         """Create a formatted error message depending on what was wrong with the
@@ -104,6 +157,16 @@ class Operation:
                 error = self.getOpError(f, ERR_NOEXIST) + "\n"
                 self.err += error
 
+    def removeOldDir(self, fileList, oldDir):
+        return ", ".join(fileList).replace("{}/".format(oldDir), "")
+
+    def compilationErrHandler(self, fileList, oldDir, err):
+        self.hasErrors = True
+        files = self.removeOldDir(fileList, oldDir)
+        error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
+        self.err += error
+        self.err += err.output + "\n"
+
     def checkCompilation(self):
         """Tries to compile files from a list using VCS (or vLogan+VCS), and
         checks to see if any compilation errors arise.
@@ -119,56 +182,44 @@ class Operation:
         Returns:
 
         """
-        # Just in case something failed before, clean up old dir if it exists
-        #   Ignore errors because they might not have the directory
-        shutil.rmtree("./temp240handin", ignore_errors=True)
-        # Create temporary directory for compilation files, and cd into it
-        os.mkdir("./temp240handin")
-        os.chdir("./temp240handin")
-
-        # Actual files are located a folder up, so:
+        # Preserve old directory to return to
+        oldDir = os.getcwd()
+        # Actual files are located in a different directory, so:
         fileList = []
         for fileName in self.compileFiles:
-            fileList.append("../" + fileName);  # Add "../" prefix to all files
+            fileList.append("{}/{}".format(oldDir, fileName))
+        # Use tempfile's temporary directory creation. We must delete after done
+        tempDir = tempfile.mkdtemp()
+        os.chdir(tempDir)
 
-        # TODO: find some way to suppress output for errors
-        if (self.specificModules != None):
-            # Command to run vlogan with files
-            vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList
-            try:
-                out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError, e:
-                self.hasErrors = True
-                files = ", ".join(fileList).replace("../", "")
-                error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-                self.err += error
-                self.err += e.output + "\n"
-            # Should only progress to VCS compilation if no errors
-            if (not self.hasErrors):
+        try:
+            if (self.specificModules != None):
+                # Command to run vlogan with files
+                vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList
+                try:
+                    out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError, e:
+                    self.compilationErrHandler(fileList, oldDir, e)
+                    return
                 for module in self.specificModules:
                     vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module]
                     try:
                         out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
                     except subprocess.CalledProcessError, e:
-                        self.hasErrors = True
-                        files = ", ".join(fileList).replace("../", "")
-                        error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-                        self.err += error
-                        self.err += e.output + "\n"
-        else:
-            vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList
-            try:
-                out = subprocess.check_output(vcsCmd)
-            except subprocess.CalledProcessError, e:
-                self.hasErrors = True
-                files = ", ".join(fileList).replace("../", "")
-                error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-                self.err += error
-                self.err += e.output + "\n"
-
-        # Cleanup
-        os.chdir("..")
-        shutil.rmtree("./temp240handin")
+                        self.compilationErrHandler(fileList, oldDir, e)
+            else:
+                vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList
+                try:
+                    out = subprocess.check_output(vcsCmd)
+                except subprocess.CalledProcessError, e:
+                    self.compilationErrHandler(fileList, oldDir, e)
+            return
+        except (KeyboardInterrupt):
+            raise
+        finally:
+            # Cleanup
+            os.chdir(oldDir)
+            shutil.rmtree(tempDir)
 
     # TODO: checkTATB()
 
@@ -192,14 +243,13 @@ class Operation:
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
-    usage = "usage: %prog [-t] hwNum"
-    parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-t", "--time", action="store", dest="time",
-            help="scheduled close time")
-    (options, args) = parser.parse_args()
-    if (len(args) != 1):
-        parser.error("Must specify homework number as arg")
-    return (options, args)
+    usage = "%(prog)s [-t] hwNum"
+    parser = argparse.ArgumentParser(usage=usage)
+    parser.add_argument("hwNum", help="number of assignment to close")
+    parser.add_argument("-t", "--time", action="store", dest="time",
+            help="scheduled close time in HH:MM (24-time)")
+    # TODO: add dry run option
+    return parser.parse_args()
 
 ################################################################################
 #                             Code for closing dirs                            #
@@ -272,10 +322,10 @@ def writeHeaderLine(header, filled=False):
                  "*" + "\n"
     return headerLine
 
-def getOutputHeader(hwNum, studentID):
+def getOutputHeader(studentID):
     HEADER_LINE = 80 * "*" + "\n"
     outputHeader = HEADER_LINE
-    outputHeader += writeHeaderLine("18240: " + hwNum)
+    outputHeader += writeHeaderLine("18240: " + HW_NUM)
     outputHeader += writeHeaderLine("Error log for: " + studentID)
     outputHeader += HEADER_LINE
     return outputHeader
@@ -347,8 +397,8 @@ def createErrLog(contents, path="."):
     fd.write(toWrite)
     fd.close()
 
-def checkStudent(studentDir, opArray, hwNum):
-    personalOutput = getOutputHeader(hwNum, studentDir)
+def checkStudent(studentDir, opArray):
+    personalOutput = getOutputHeader(studentDir)
     hasAnyErrors = False
     os.chdir(studentDir)
     print("\tChecking compile for {}".format(studentDir))
@@ -365,8 +415,8 @@ def checkStudent(studentDir, opArray, hwNum):
     os.chdir("../")
     return (hasAnyErrors, personalOutput)
 
-def writeResults(hwNum, strArr):
-    path = "{}/handinResults/{}_results.txt".format(STAFF_DIR, hwNum)
+def writeResults(strArr):
+    path = "{}/handinResults/{}_results.txt".format(STAFF_DIR, HW_NUM)
     if (len(strArr) < 1):
         return
     fd = open(path, "w")
@@ -376,12 +426,13 @@ def writeResults(hwNum, strArr):
     fd.close()
     print("Errored students written to {}".format(path))
 
-def checkStudents(handinDir, studentList, hwNum):
+def checkStudents(handinDir, studentList):
+    global HW_NUM
     # Parse config file and do relevant operations
-    cfgPath = searchCfg("{}_cfg.json".format(hwNum))
+    cfgPath = searchCfg("{}_cfg.json".format(HW_NUM))
     # Take the proper (case-sensitive) hwNum
-    hwNum = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
-    config = parseConfig(CFG_DIR + "/" + hwNum + "_cfg.json")
+    HW_NUM = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
+    config = parseConfig(CFG_DIR + "/" + HW_NUM + "_cfg.json")
     if (config == None):
         exit(255)
     opArray = makeOpArray(config)
@@ -391,7 +442,7 @@ def checkStudents(handinDir, studentList, hwNum):
     errorStudents = []
     for student in studentList:
         hasErrors = False
-        (hasErrors, errOut) = checkStudent(student, opArray, hwNum)
+        (hasErrors, errOut) = checkStudent(student, opArray)
         if (hasErrors):
             errorStudents.append(errOut)
     os.chdir(oldCwd)
@@ -403,20 +454,23 @@ def checkTime(targetTime):
     return goodHr and goodMin
 
 def main():
-    (options, args) = getArgs()
-    hwNum = args[0].lower()
-    closeTime = options.time
-    isScheduled = (closeTime != None)
-    try:
-        closeTime = time.strptime(closeTime, "%H:%M")
-    except ValueError:
-        print("ERROR: time must be in the format HH:MM (24-hour time)")
-        return 255
+    args = getArgs()
 
-    handinDir = HANDIN_DIR + "/" + hwNum
+    global HW_NUM
+    HW_NUM = args.hwNum.lower()
+    closeTime = args.time
+    isScheduled = (closeTime != None)
+    if (isScheduled):
+        try:
+            closeTime = time.strptime(closeTime, "%H:%M")
+        except (ValueError):
+            print("ERROR: time must be in the format HH:MM (24-hour time)")
+            return 255
+
+    handinDir = HANDIN_DIR + "/" + HW_NUM
     print("Closing handin directories in " + handinDir)
     if (not os.path.exists(handinDir)):
-        print("\n" + hwNum + " handin directory does not exist.")
+        print("\n" + HW_NUM + " handin directory does not exist.")
         exit(255)
     fileList = os.listdir(handinDir)
     dirList = []
@@ -425,26 +479,30 @@ def main():
             dirList.append(f)
 
     startNow = False
-    if (isScheduled):
-        print("Waiting for scheduled time: {:02d}:{:02d}".format(closeTime.tm_hour,
-            closeTime.tm_min))
-    while (not startNow):
-        if (not isScheduled):
-            break
-        if (checkTime(closeTime)):
-            startNow = True
-        else:
-            time.sleep(30)
-    closeStudentDirs(handinDir, dirList)
-    print("\n{}Handin directories closed.{}".format(bcolors.OKGREEN, bcolors.ENDC))
+    try:
+        if (isScheduled):
+            print("Waiting for scheduled time: {:02d}:{:02d}".format(closeTime.tm_hour,
+                closeTime.tm_min))
+        while (not startNow):
+            if (not isScheduled):
+                break
+            if (checkTime(closeTime)):
+                startNow = True
+            else:
+                time.sleep(30)
+        closeStudentDirs(handinDir, dirList)
+        print("\n{}Handin directories closed.{}".format(bcolors.OKGREEN, bcolors.ENDC))
 
-    sys.stdout.write("\nChecking handins for all students...\n")
-    sys.stdout.flush()
-    errorStudents = checkStudents(handinDir, dirList, hwNum)
-    sys.stdout.write("Done!\n")
-    sys.stdout.flush()
-    writeResults(hwNum, errorStudents)
+        sys.stdout.write("\nChecking handins for all students...\n")
+        sys.stdout.flush()
+        errorStudents = checkStudents(handinDir, dirList)
+        sys.stdout.write("Done!\n")
+        sys.stdout.flush()
+        writeResults(errorStudents)
+        return 0
+    except (KeyboardInterrupt):
+        return 0
+    except (SystemExit):
+        raise
 
-    return 0
-
-exit(main())
+sys.exit(main())
