@@ -8,48 +8,53 @@
 #
 # Edric Kusuma <ekusuma@cmu.edu>
 
-import optparse;
-import os;
-import subprocess;
-import csv;
-import json;
-from env import *;
-
-isVerbose = False;
+import ConfigParser
+import argparse
+import os
+import sys
+import subprocess
+import csv
+import json
 
 class ConfigError(Exception):
     def __init__(self, message):
-        self.message = "ConfigError: " + message;
-        super(Exception, self).__init__(self.message);
+        self.message = "ConfigError: " + message
+        super(Exception, self).__init__(self.message)
 
 # Colors!
 class bcolors:
-    HEADER = "\033[95m";
-    OKBLUE = "\033[94m";
-    OKGREEN = "\033[92m";
-    WARNING = "\033[93m";
-    FAIL = "\033[91m";
-    ENDC = "\033[0m";
-    BOLD = "\033[1m";
-    UNDERLINE = "\033[4m";
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[33m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+# Initialize config file
+########################
+conf = ConfigParser.ConfigParser()
+conf.read('config.ini')
+
+HANDIN_DIR  = conf.get('HANDIN', 'HANDIN_DIR')
+CFG_DIR     = conf.get('HANDIN', 'CFG_DIR')
+ROSTER      = conf.get('ADMIN', 'ROSTER')
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
-    usage = "usage: %prog [-rv] hwNum";
-    parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-r", action="store", type="string", dest="rosterPath",
-                      default=ROSTER, help="path to student roster file");
-    parser.add_option("-v", action="store_true", dest="isVerbose",
-                      default=False, help="verbose script output");
-    (options, args) = parser.parse_args();
-    if (len(args) != 1):
-        parser.error("Must specify homework number as arg");
-    return (options, args);
+    parser = argparse.ArgumentParser()
+    parser.add_argument("hwNum", help="number of assignment to open")
+    parser.add_argument("-r", action="store", type=str, dest="rosterPath",
+                      default=ROSTER, help="path to student roster file")
+    parser.add_argument("-v", action="store_true", dest="isVerbose",
+                      default=False, help="verbose script output")
+    return parser.parse_args()
 
 # Sets AFS permissions such that the student may write to the directory
 # Admins have usual admin permissions, and other students may not access
 def setStudentPerms(studentID, path):
-    fsCmd = ["fs", "seta", "-dir", path, "-clear", "-acl"];
+    fsCmd = ["fs", "seta", "-dir", path, "-clear", "-acl"]
     peoplePerms = [
         "system:web-srv-users", "rl",
         "ee240:ta", "all",
@@ -57,56 +62,56 @@ def setStudentPerms(studentID, path):
         "ee240", "all",
         "system:administrators", "all",
         studentID, "write"
-    ];
-    fsCmd += peoplePerms;
+    ]
+    fsCmd += peoplePerms
 
-    retVal = None;
-    devnull = open(os.devnull, "w");
+    retVal = None
+    devnull = open(os.devnull, "w")
     try:
-        subprocess.check_call(fsCmd, stderr=devnull);
+        subprocess.check_call(fsCmd, stderr=devnull)
     except subprocess.CalledProcessError, e:
-        retVal = studentID;
-    devnull.close();
+        retVal = studentID
+    devnull.close()
 
-    return retVal;
+    return retVal
 
 def printBadIDs(idList):
-    print("\n{}Error:{} unable to set perms for".format(bcolors.FAIL, bcolors.ENDC));
+    print("\n{}Error:{} unable to set perms for".format(bcolors.FAIL, bcolors.ENDC))
     for id in idList:
-        print("\t" + id);
-    print("Please check that ID is correct, and that student is in the ECE system.");
+        print("\t" + id)
+    print("Please check that ID is correct, and that student is in the ECE system.")
 
 # Creates a directory for each student inside of the basePath directory. ids
 # must be an array of student IDs.
 def createStudentDirs(basePath, ids):
-    badIDs = [];
+    badIDs = []
     for student in ids:
-        path = basePath + "/" + student.lower();
+        path = basePath + "/" + student.lower()
         if (not os.path.exists(path)):
-            os.mkdir(basePath + "/" + student.lower());
-        elif (isVerbose):
+            os.mkdir(basePath + "/" + student.lower())
+        elif (VERBOSE):
             print("Handin dir already exists for " + student.lower() +
-                    ", skipping");
-        retVal = setStudentPerms(student, path);
+                    ", skipping")
+        retVal = setStudentPerms(student, path)
         if (retVal != None):
-            badIDs.append(student);
+            badIDs.append(student)
     if (len(badIDs) != 0):
-        printBadIDs(badIDs);
+        printBadIDs(badIDs)
 
 def parseCSV(csvPath, field="Andrew ID"):
-    csvReader = csv.DictReader(csvPath);
-    studentList = [];
+    csvReader = csv.DictReader(csvPath)
+    studentList = []
     for row in csvReader:
-        studentList.append(row[field]);
-    return studentList;
+        studentList.append(row[field])
+    return studentList
 
 def searchCfg(hwNum):
-    fileName = hwNum + "_cfg.json";
-    fileList = os.listdir(CFG_DIR);
+    fileName = hwNum + "_cfg.json"
+    fileList = os.listdir(CFG_DIR)
     for f in fileList:
         if (f.lower() == fileName.lower()):
-            return "{}/{}".format(CFG_DIR, f);
-    raise ConfigError("no config for {}".format(hwNum));
+            return "{}/{}".format(CFG_DIR, f)
+    raise ConfigError("no config for {}".format(hwNum))
 
 def checkJson(jsonPath):
     jsonFile = open(jsonPath, 'r')
@@ -117,10 +122,11 @@ def checkJson(jsonPath):
         raise ConfigError(msg)
 
 def main():
-    (options, args) = getArgs();
-    hwNum = args[0];
-    global isVerbose;
-    isVerbose = options.isVerbose;
+    args = getArgs()
+    hwNum = args.hwNum
+    global VERBOSE
+    VERBOSE = args.isVerbose
+    rosterPath = args.rosterPath
 
     try:
         path = searchCfg(hwNum)
@@ -129,26 +135,26 @@ def main():
         print(e)
         exit (255)
 
-    handinDir = HANDIN_DIR + "/" + hwNum;
-    print("Creating handin directories for " + hwNum + " in " + handinDir);
+    handinDir = HANDIN_DIR + "/" + hwNum
+    print("Creating handin directories for " + hwNum + " in " + handinDir)
     if (not os.path.exists(handinDir)):
-        os.mkdir(handinDir);
-    elif (isVerbose):
-        print("Path exists for " + handinDir + ", skipping");
+        os.mkdir(handinDir)
+    elif (VERBOSE):
+        print("Path exists for " + handinDir + ", skipping")
 
-    if (isVerbose):
-        print("Using roster file in " + options.rosterPath + "\n");
+    if (VERBOSE):
+        print("Using roster file in " + rosterPath + "\n")
     try:
-        rosterFile = open(options.rosterPath, "r");
+        rosterFile = open(rosterPath, "r")
     except IOError, e:
-        print("Error: no such file in " + options.rosterPath);
-        print("\nHandin directories not created. Exiting...");
-        return 255;
-    studentIDs = parseCSV(rosterFile);
-    createStudentDirs(handinDir, studentIDs);
-    rosterFile.close();
+        print("Error: no such file in " + rosterPath)
+        print("\nHandin directories not created. Exiting...")
+        return 255
+    studentIDs = parseCSV(rosterFile)
+    createStudentDirs(handinDir, studentIDs)
+    rosterFile.close()
 
-    print("\nHandin directories created.");
-    return 0;
+    print("\nHandin directories created.")
+    return 0
 
-exit(main());
+sys.exit(main())
