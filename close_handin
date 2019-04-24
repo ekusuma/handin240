@@ -48,7 +48,8 @@ ERR_FAILTEST    = 2
 # Initialize config file
 ########################
 conf = ConfigParser.ConfigParser()
-conf.read('config.ini')
+scriptPath = os.path.dirname(os.path.realpath(__file__))
+conf.read(scriptPath + '/config.ini')
 
 STAFF_DIR   = conf.get('DEFAULT', 'STAFF_DIR')
 HANDIN_DIR  = conf.get('HANDIN', 'HANDIN_DIR')
