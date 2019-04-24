@@ -72,7 +72,8 @@ ERR_UNKNOWN     = 255
 # Initialize config file
 ########################
 conf = ConfigParser.ConfigParser()
-conf.read('config.ini')
+scriptPath = os.path.dirname(os.path.realpath(__file__))
+conf.read(scriptPath + '/config.ini')
 
 HANDIN_DIR  = conf.get('HANDIN', 'HANDIN_DIR')
 CFG_DIR     = conf.get('HANDIN', 'CFG_DIR')
