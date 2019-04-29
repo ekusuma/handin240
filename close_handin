@@ -459,7 +459,7 @@ def main():
     args = getArgs()
 
     global HW_NUM
-    HW_NUM = args.hwNum.lower()
+    HW_NUM = args.hwNum
     closeTime = args.time
     isScheduled = (closeTime != None)
     if (isScheduled):
