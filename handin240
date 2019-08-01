@@ -364,7 +364,7 @@ class Operation:
             self.checkExistence()
             if (self.hasErrors):
                 return self.err + "\n"
-        if (self.compileFiles != None):
+        if ((not SKIP_COMP) and (self.compileFiles != None)):
             self.checkCompilation()
             if (self.hasErrors):
                 return self.err + "\n"
@@ -444,6 +444,8 @@ def getArgs():
     parser.add_argument("hwNum", help="number of homework to submit")
     parser.add_argument("-f", "--force", action="store_true", dest="force",
                       help="force handin even with bad files")
+    parser.add_argument("-s", "--skip", action="store_true",
+                      help="hand in files without compiling")
     parser.add_argument("-n", "--dryrun", action="store_true", dest="dryrun",
                       help="run script without handing in")
     return parser.parse_args()
@@ -920,6 +922,8 @@ def main():
     # Save relevant fields
     global FORCED
     FORCED = args.force
+    global SKIP_COMP
+    SKIP_COMP = args.skip
     global HW_NUM
     HW_NUM = args.hwNum.lower()     # Make case insensitive
     global DRY
@@ -951,6 +955,11 @@ def main():
     handinCreated = bcolors.OKGREEN + "Handin complete." + bcolors.ENDC
     handinNotCreated = bcolors.FAIL + "Handin not complete." + bcolors.ENDC
 
+    if (SKIP_COMP):
+        skip_warning = bcolors.WARNING + "\nWARNING: " + bcolors.ENDC
+        skip_warning += "you are choosing to skip compilation checks. Note that "
+        skip_warning += "code that doesn't compile WILL get ZERO credit."
+        print(skip_warning)
     # Check if handin had any errors
     attemptHandin = handinPrecheck(hasAnyErrors, personalOutput)
 
