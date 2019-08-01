@@ -92,7 +92,7 @@ submit to Gradescope.
 ### Handing in bad files
 You may notice that if you try to hand in code that either does not exist, or
 does not compile, the handin aborts. This is intentional. As per course policy:
-**code that does not compile will receive zero points**.
+**code that does not compile will receive zero points**. No exceptions.
 
 Of course, sometimes you simply don't have time to finish all of an assignment.
 We get it, it happens all too often. If you want to handin an incomplete
@@ -101,5 +101,10 @@ assignment then run the script with the `-f` flag:
 $ handin240 hwNum -f
 ```
 and this will force the handin with incomplete files.
+
+Additionally, you may opt to skip the compilation step by using the `-s` option.
+This is best used if you had just compiled the files on your own before
+attempting to submit. If you skipped the compilation step and your code doesn't
+compile, again **you will get a zero**.
 
 Again, **do not forget to submit the PDF to Gradescope**!
