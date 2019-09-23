@@ -1,4 +1,4 @@
-from handin240_utils.utils import bcolors, ConfigError
+from handin240_utils.utils import *
 
 import subprocess as sp
 import os
@@ -53,7 +53,7 @@ def createStudentDirs(basePath, ids, dryrun=False, verbose=False):
         printBadIDs(badIDs)
 
 # Sets AFS permissions such that the student may no longer write to the directory
-def closeStudentPerms(studentID, path):
+def closeStudentPerms(studentID, path, dryrun=False):
     fsCmd = ["fs", "seta", "-dir", path, "-clear", "-acl"]
     peoplePerms = [
         "system:web-srv-users", "rl",
@@ -68,20 +68,66 @@ def closeStudentPerms(studentID, path):
     retVal = None
     devnull = open(os.devnull, "w")
     try:
-        subprocess.check_call(fsCmd, stderr=devnull)
-    except subprocess.CalledProcessError, e:
+        if (not dryrun):
+            sp.check_call(fsCmd, stderr=devnull)
+        return retVal
+    except sp.CalledProcessError, e:
         retVal = studentID
-    devnull.close()
+        return retVal
+    finally:
+        devnull.close()
 
-    return retVal
-
-def closeStudentDirs(basePath, dirs):
+def closeStudentDirs(basePath, dirs, dryrun=False):
     badIDs = []
     for studentDir in dirs:
         path = basePath + "/" + studentDir
-        retVal = closeStudentPerms(studentDir, path)
+        retVal = closeStudentPerms(studentDir, path, dryrun)
         if (retVal != None):
             badIDs.append(studentDir)
     if (len(badIDs) != 0):
         printBadIDs(badIDs)
+
+def checkStudent(studentDir, opArray, hwNum):
+    personalOutput = getOutputHeader(studentDir, hwNum)
+    hasAnyErrors = False
+    oldDir = os.getcwd()
+    os.chdir(studentDir)
+
+    print("\tChecking compile for {}".format(studentDir))
+    for op in opArray:
+        op.clearErrors()
+        errString = op.do()
+        if (op.hasErrors):
+            hasAnyErrors = True
+            personalOutput += writeHeaderLine("Problem {}".format(op.number), True)
+            personalOutput += errString
+    if (hasAnyErrors):
+        createErrLog(personalOutput)
+    # No errors, so should remove the log file
+    else:
+        os.remove('./errors.log')
+
+    os.chdir(oldDir)
+    return (hasAnyErrors, personalOutput)
+
+def checkStudents(cfgDir, handinDir, studentList, hwNum):
+    # Parse config file and do relevant operations
+    cfgPath = searchCfg(hwNum, cfgDir)
+    # Take the proper (case-sensitive) hwNum
+    hwNum = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
+    config = parseConfig(cfgDir + "/" + hwNum + "_cfg.json")
+    if (config == None):
+        exit(255)
+    opArray = makeOpArray(config)
+    oldCwd = os.getcwd()
+    os.chdir(handinDir)
+
+    errorStudents = []
+    for student in studentList:
+        hasErrors = False
+        (hasErrors, errOut) = checkStudent(student, opArray, hwNum)
+        if (hasErrors):
+            errorStudents.append(errOut)
+    os.chdir(oldCwd)
+    return errorStudents
 

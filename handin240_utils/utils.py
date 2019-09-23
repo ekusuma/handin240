@@ -2,8 +2,16 @@ import ConfigParser
 import subprocess as sp
 import sys
 import os
+import shutil
+import tempfile
+import glob
 import json
 import csv
+
+# Some useful constants in the scope of this script
+ERR_NOEXIST     = 0
+ERR_NOCOMPILE   = 1
+ERR_FAILTEST    = 2
 
 class ConfigError(Exception):
     def __init__(self, message):
@@ -75,12 +83,12 @@ def parseCSVField(csvPath, field='Andrew ID'):
         studentList.append(row[field])
     return studentList
 
-def searchCfg(hwNum, cfg_dir):
+def searchCfg(hwNum, cfgDir):
     fileName = hwNum + '_cfg.json'
-    fileList = os.listdir(cfg_dir)
+    fileList = os.listdir(cfgDir)
     for f in fileList:
         if (f.lower() == fileName.lower()):
-            return '{}/{}'.format(cfg_dir, f)
+            return '{}/{}'.format(cfgDir, f)
     raise ConfigError('no config for {}'.format(hwNum))
 
 def parseConfig(configPath):
@@ -232,12 +240,6 @@ class Operation:
         """Tries to compile files from a list using VCS (or vLogan+VCS), and
         checks to see if any compilation errors arise.
 
-        Utilizes a temporary directory called `temp240handin`. As of now, this
-        function will actually overwrite that directory if it already exists, so
-        hope that the user doesn't have a folder with that name.
-
-        If there is an error, it will also print the compiler message to stdout.
-
         Args:
 
         Returns:
@@ -258,21 +260,21 @@ class Operation:
                 # Command to run vlogan with files
                 vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList
                 try:
-                    out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT)
-                except subprocess.CalledProcessError, e:
+                    out = sp.check_output(vloganCmd, stderr=sp.STDOUT)
+                except sp.CalledProcessError, e:
                     self.compilationErrHandler(fileList, oldDir, e)
                     return
                 for module in self.specificModules:
                     vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module]
                     try:
-                        out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
-                    except subprocess.CalledProcessError, e:
+                        out = sp.check_output(vcsCmd, stderr=sp.STDOUT)
+                    except sp.CalledProcessError, e:
                         self.compilationErrHandler(fileList, oldDir, e)
             else:
                 vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList
                 try:
-                    out = subprocess.check_output(vcsCmd)
-                except subprocess.CalledProcessError, e:
+                    out = sp.check_output(vcsCmd)
+                except sp.CalledProcessError, e:
                     self.compilationErrHandler(fileList, oldDir, e)
             return
         except (KeyboardInterrupt):
@@ -336,10 +338,10 @@ def writeHeaderLine(header, filled=False):
                  "*" + "\n"
     return headerLine
 
-def getOutputHeader(studentID):
+def getOutputHeader(studentID, hwNum):
     headerLine = 80 * "*" + "\n"
     outputHeader = headerLine
-    outputHeader += writeHeaderLine("18240: " + HW_NUM)
+    outputHeader += writeHeaderLine("18240: " + hwNum)
     outputHeader += writeHeaderLine("Error log for: " + studentID)
     outputHeader += headerLine
     return outputHeader
@@ -350,56 +352,14 @@ def createErrLog(contents, path="."):
     fd.write(toWrite)
     fd.close()
 
-def checkStudent(studentDir, opArray):
-    personalOutput = getOutputHeader(studentDir)
-    hasAnyErrors = False
-    oldDir = os.getcwd()
-    os.chdir(studentDir)
-
-    print("\tChecking compile for {}".format(studentDir))
-    for op in opArray:
-        op.clearErrors()
-        errString = op.do()
-        if (op.hasErrors):
-            hasAnyErrors = True
-            personalOutput += writeHeaderLine("Problem {}".format(op.number), True)
-            personalOutput += errString
-    if (hasAnyErrors):
-        createErrLog(personalOutput)
-
-    os.chdir(oldDir)
-    return (hasAnyErrors, personalOutput)
-
-def writeResults(strArr):
-    path = "{}/{}_results.txt".format(RESULTS_DIR, HW_NUM)
+def writeResults(strArr, hwNum, resultsDir):
+    path = "{}/{}_results.txt".format(resultsDir, hwNum)
     if (len(strArr) < 1):
         return
     fd = open(path, "w")
     toWrite = "\n\n".join(strArr)
-    toWrite = stripFormatting(toWrite)
+    toWrite = bcolors.stripFormatting(toWrite)
     fd.write(toWrite)
     fd.close()
     print("Errored students written to {}".format(path))
-
-def checkStudents(handinDir, studentList):
-    global HW_NUM
-    # Parse config file and do relevant operations
-    cfgPath = searchCfg("{}_cfg.json".format(HW_NUM))
-    # Take the proper (case-sensitive) hwNum
-    HW_NUM = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
-    config = parseConfig(CFG_DIR + "/" + HW_NUM + "_cfg.json")
-    if (config == None):
-        exit(255)
-    opArray = makeOpArray(config)
-    oldCwd = os.getcwd()
-    os.chdir(handinDir)
-
-    errorStudents = []
-    for student in studentList:
-        hasErrors = False
-        (hasErrors, errOut) = checkStudent(student, opArray)
-        if (hasErrors):
-            errorStudents.append(errOut)
-    os.chdir(oldCwd)
-    return errorStudents
 
