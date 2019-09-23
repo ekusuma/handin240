@@ -1,55 +1,7 @@
-import ConfigParser
+from handin240_utils import *
+
 import subprocess as sp
-import sys
 import os
-import json
-import csv
-
-class ConfigError(Exception):
-    def __init__(self, message):
-        self.message = "ConfigError: " + message
-        super(Exception, self).__init__(self.message)
-
-# Colors!
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[33m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-    @staticmethod
-    def warning_msg(msg):
-        warn = bcolors.WARNING + "WARNING: " + msg + bcolors.ENDC
-        print(warn)
-        return warn
-
-    def error_msg(msg):
-        err = bcolors.ERROR + "ERROR: " + msg + bcolors.ENDC
-        print(err)
-        return err
-
-def get_env(config_file):
-    conf = ConfigParser.ConfigParser()
-    conf.read(config_file)
-    env = dict()
-    try:
-        # first parse all of the defaults
-        for item in conf.defaults():
-            env[item[0]] = item[1]
-        # hopefully won't be clobbered by defaults
-        for section in conf.sections():
-            for item in conf.items(section):
-                env[item[0]] = item[1]
-    except Exception as e:
-        print('Error parsing script config file:')
-        print(e)
-        # Will exit, so be careful with cleanup
-        sys.exit(1)
-    return env
 
 # Sets AFS permissions such that the student may write to the directory
 # Admins have usual admin permissions, and other students may not access
@@ -100,25 +52,36 @@ def createStudentDirs(basePath, ids, dryrun=False, verbose=False):
     if (len(badIDs) != 0):
         printBadIDs(badIDs)
 
-def parseCSVField(csvPath, field='Andrew ID'):
-    csvReader = csv.DictReader(csvPath)
-    studentList = []
-    for row in csvReader:
-        studentList.append(row[field])
-    return studentList
+# Sets AFS permissions such that the student may no longer write to the directory
+def closeStudentPerms(studentID, path):
+    fsCmd = ["fs", "seta", "-dir", path, "-clear", "-acl"]
+    peoplePerms = [
+        "system:web-srv-users", "rl",
+        "ee240:ta", "all",
+        "ee240:staff", "all",
+        "ee240", "all",
+        "system:administrators", "all",
+        studentID, "read"
+    ]
+    fsCmd += peoplePerms
 
-def searchCfg(hwNum, cfg_dir):
-    fileName = hwNum + '_cfg.json'
-    fileList = os.listdir(cfg_dir)
-    for f in fileList:
-        if (f.lower() == fileName.lower()):
-            return '{}/{}'.format(cfg_dir, f)
-    raise ConfigError('no config for {}'.format(hwNum))
-
-def checkJson(jsonPath):
-    jsonFile = open(jsonPath, 'r')
+    retVal = None
+    devnull = open(os.devnull, "w")
     try:
-        json.load(jsonFile)
-    except Exception as e:
-        msg = 'error with {}: \n{}'.format(jsonPath, e)
-        raise ConfigError(msg)
+        subprocess.check_call(fsCmd, stderr=devnull)
+    except subprocess.CalledProcessError, e:
+        retVal = studentID
+    devnull.close()
+
+    return retVal
+
+def closeStudentDirs(basePath, dirs):
+    badIDs = []
+    for studentDir in dirs:
+        path = basePath + "/" + studentDir
+        retVal = closeStudentPerms(studentDir, path)
+        if (retVal != None):
+            badIDs.append(studentDir)
+    if (len(badIDs) != 0):
+        printBadIDs(badIDs)
+
