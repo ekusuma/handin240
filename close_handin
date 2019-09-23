@@ -16,232 +16,21 @@
 #
 # Edric Kusuma <ekusuma@cmu.edu>
 
-import ConfigParser
+import handin240_utils.admin as admin
+from handin240_utils.utils import bcolors, Operation
+
 import os
 import sys
-import shutil
-import tempfile
 import argparse
-import subprocess
-import json
-import glob
 import time
 
-###################### Some cool output formatting stuff #######################
-class bcolors:
-    HEADER = "\033[95m"
-    OKBLUE = "\033[94m"
-    OKGREEN = "\033[92m"
-    WARNING = "\033[33m"
-    FAIL = "\033[91m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-
-################################################################################
-
-# Some useful constants in the scope of this script
-ERR_NOEXIST     = 0
-ERR_NOCOMPILE   = 1
-ERR_FAILTEST    = 2
-
-# Initialize config file
-########################
-conf = ConfigParser.ConfigParser()
-scriptPath = os.path.dirname(os.path.realpath(__file__))
-conf.read(scriptPath + '/config.ini')
-
-STAFF_DIR   = conf.get('DEFAULT', 'STAFF_DIR')
-HANDIN_DIR  = conf.get('HANDIN', 'HANDIN_DIR')
-CFG_DIR     = conf.get('HANDIN', 'CFG_DIR')
-RESULTS_DIR = conf.get('ADMIN', 'RESULTS_DIR')
-
-################################################################################
-#                           Code for compilation check                         #
-################################################################################
-
-class Operation:
-    def __init__(self):
-        self.number = None
-        self.existFiles = None
-        self.compileFiles = None
-        self.testFiles = None
-        self.specificModules = None
-        self.hasErrors = False
-        self.err = ""
-        self.useWildcard = False
-
-    def clearErrors(self):
-        self.hasErrors = False
-        self.err = ""
-
-    def checkWildcard(self):
-        """Checks the list of files for wildcard specifiers, then adds files
-        that satisfy the wildcard(s) to the list.
-
-        Args:
-            Nothing.
-
-        Returns:
-            Nothing.
-
-        """
-        tempExistFiles = set()
-        tempCompileFiles = set()
-
-        if (self.existFiles != None):
-            for f in self.existFiles:
-                if ("*" in f):
-                # Add all the wildcard files
-                    self.useWildcard = True
-                    allFiles = set(glob.glob(f))
-                    tempExistFiles = tempExistFiles.union(allFiles)
-                else:
-                    tempExistFiles.add(f)
-            # Convert to a list, alphabetical order
-            self.existFiles = sorted(list(tempExistFiles))
-        if (self.compileFiles != None):
-            for f in self.compileFiles:
-                if ("*" in f):
-                    allFiles = set(glob.glob(f))
-                    tempCompileFiles = tempCompileFiles.union(allFiles)
-                else:
-                    tempCompileFiles.add(f)
-            self.compileFiles = sorted(list(tempCompileFiles))
-
-    def parseProblem(self, p):
-        if (p["number"] != None):
-            self.number = p["number"]
-        if (p["files"] != None):
-            self.existFiles = p["files"]
-        if (p["compileFiles"] != None):
-            self.compileFiles = p["compileFiles"]
-        if (p["testFiles"] != None):
-            self.testFiles = p["testFiles"]
-        if (p["specificModules"] != None):
-            self.specificModules = p["specificModules"]
-        self.checkWildcard()
-
-    def getOpError(self, mainFile, errType):
-        """Create a formatted error message depending on what was wrong with the
-        file.
-
-        Args:
-            mainFile (str): Name of a bad file.
-            errType (int): Error type to classify problem with file.
-
-        Returns:
-            (str): Formatted string to display as an error.
-
-        """
-        if (errType == ERR_NOEXIST):
-            errMessage = "file does not exist"
-        elif (errType == ERR_NOCOMPILE):
-            errMessage = "failed to compile"
-        elif (errType == ERR_FAILTEST):
-            errMessage = "failed TA testbench"
-        else:
-            errMessage = "unspecified error"
-        return mainFile + ": " + bcolors.FAIL + errMessage + bcolors.ENDC
-
-    def checkExistence(self):
-        """Checks if every file in a file list exists within the current
-        directory. Also lists what files do not exist, if any.
-
-        Args:
-
-        Returns:
-
-        """
-        for f in self.existFiles:
-            if (not os.path.exists("./" + f)):
-                self.hasErrors = True
-                error = self.getOpError(f, ERR_NOEXIST) + "\n"
-                self.err += error
-
-    def removeOldDir(self, fileList, oldDir):
-        return ", ".join(fileList).replace("{}/".format(oldDir), "")
-
-    def compilationErrHandler(self, fileList, oldDir, err):
-        self.hasErrors = True
-        files = self.removeOldDir(fileList, oldDir)
-        error = self.getOpError(files, ERR_NOCOMPILE) + "\n"
-        self.err += error
-        self.err += err.output + "\n"
-
-    def checkCompilation(self):
-        """Tries to compile files from a list using VCS (or vLogan+VCS), and
-        checks to see if any compilation errors arise.
-
-        Utilizes a temporary directory called `temp240handin`. As of now, this
-        function will actually overwrite that directory if it already exists, so
-        hope that the user doesn't have a folder with that name.
-
-        If there is an error, it will also print the compiler message to stdout.
-
-        Args:
-
-        Returns:
-
-        """
-        # Preserve old directory to return to
-        oldDir = os.getcwd()
-        # Actual files are located in a different directory, so:
-        fileList = []
-        for fileName in self.compileFiles:
-            fileList.append("{}/{}".format(oldDir, fileName))
-        # Use tempfile's temporary directory creation. We must delete after done
-        tempDir = tempfile.mkdtemp()
-        os.chdir(tempDir)
-
-        try:
-            if (self.specificModules != None):
-                # Command to run vlogan with files
-                vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList
-                try:
-                    out = subprocess.check_output(vloganCmd, stderr=subprocess.STDOUT)
-                except subprocess.CalledProcessError, e:
-                    self.compilationErrHandler(fileList, oldDir, e)
-                    return
-                for module in self.specificModules:
-                    vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module]
-                    try:
-                        out = subprocess.check_output(vcsCmd, stderr=subprocess.STDOUT)
-                    except subprocess.CalledProcessError, e:
-                        self.compilationErrHandler(fileList, oldDir, e)
-            else:
-                vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList
-                try:
-                    out = subprocess.check_output(vcsCmd)
-                except subprocess.CalledProcessError, e:
-                    self.compilationErrHandler(fileList, oldDir, e)
-            return
-        except (KeyboardInterrupt):
-            raise
-        finally:
-            # Cleanup
-            os.chdir(oldDir)
-            shutil.rmtree(tempDir)
-
-    # TODO: checkTATB()
-
-    def do(self):
-        """Performs an operation based on the op's attributes.
-
-        Args:
-
-        Returns:
-
-        """
-        if (self.existFiles != None):
-            self.checkExistence()
-            if (self.hasErrors):
-                return self.err + "\n"
-        if (self.compileFiles != None):
-            self.checkCompilation()
-            if (self.hasErrors):
-                return self.err + "\n"
-        return ""
+# Globals useful for this script
+SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+ENV         = admin.get_env(SCRIPT_PATH + '/config.ini')
+STAFF_DIR   = ENV['staff_dir']
+HANDIN_DIR  = ENV['handin_dir']
+CFG_DIR     = ENV['cfg_dir']
+RESULTS_DIR = ENV['results_dir']
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
@@ -250,205 +39,10 @@ def getArgs():
     parser.add_argument("hwNum", help="number of assignment to close")
     parser.add_argument("-t", "--time", action="store", dest="time",
             help="scheduled close time in HH:MM (24-time)")
-    # TODO: add dry run option
+    parser.add_argument('-n', '--dryrun', action='store_true', dest='dryrun',
+                        default=False,
+                        help='prevents script from creating/modifying files')
     return parser.parse_args()
-
-################################################################################
-#                             Code for closing dirs                            #
-################################################################################
-
-# Sets AFS permissions such that the student may no longer write to the directory
-def closeStudentPerms(studentID, path):
-    fsCmd = ["fs", "seta", "-dir", path, "-clear", "-acl"]
-    peoplePerms = [
-        "system:web-srv-users", "rl",
-        "ee240:ta", "all",
-        "ee240:staff", "all",
-        "ee240", "all",
-        "system:administrators", "all",
-        studentID, "read"
-    ]
-    fsCmd += peoplePerms
-
-    retVal = None
-    devnull = open(os.devnull, "w")
-    try:
-        subprocess.check_call(fsCmd, stderr=devnull)
-    except subprocess.CalledProcessError, e:
-        retVal = studentID
-    devnull.close()
-
-    return retVal
-
-def printBadIDs(idList):
-    print("\nError: unable to set perms for")
-    for id in idList:
-        print("\t" + id)
-    print("Please check that ID is correct, and that student is in the ECE system.")
-
-def closeStudentDirs(basePath, dirs):
-    badIDs = []
-    for studentDir in dirs:
-        path = basePath + "/" + studentDir
-        retVal = closeStudentPerms(studentDir, path)
-        if (retVal != None):
-            badIDs.append(studentDir)
-    if (len(badIDs) != 0):
-        printBadIDs(badIDs)
-
-################################################################################
-#                        Code for checking compilation                         #
-################################################################################
-
-def writeHeaderLine(header, filled=False):
-    """Used to write a line in the header for the errors.log file.
-
-    Args:
-        header (string): Text to write in one line of the header.
-
-    Returns:
-        (string): Formatted header line string.
-
-    """
-    HEADER_LEN = 80
-    maxLen = HEADER_LEN - 2;    # Beginning and ending "*"
-    header = " " + header + " "
-    remaining = maxLen - len(header)
-    firstHalf = remaining // 2
-    secondHalf = remaining - firstHalf
-    if (filled):
-        filler = "*"
-    else:
-        filler = " "
-    headerLine = "*" + (filler * firstHalf) + header + (filler * secondHalf) + \
-                 "*" + "\n"
-    return headerLine
-
-def getOutputHeader(studentID):
-    HEADER_LINE = 80 * "*" + "\n"
-    outputHeader = HEADER_LINE
-    outputHeader += writeHeaderLine("18240: " + HW_NUM)
-    outputHeader += writeHeaderLine("Error log for: " + studentID)
-    outputHeader += HEADER_LINE
-    return outputHeader
-
-def parseConfig(configPath):
-    """Parses the config JSON file. See README for how these config files must
-    be formatted/defined as.
-
-    Raises a fatal error if the path is invalid.
-
-    Args:
-        configPath (str): A path leading to the config JSON file. Must be a
-            .json file.
-
-    Returns:
-        On success:
-            (dict): A dictionary that has the parsed JSON mapped onto it. See
-                the json module for details on how this is defined.
-        On error:
-            (None)
-
-    """
-    if (not os.path.exists(configPath)):
-        error("no such config file. Are you sure the hw number is correct?", fatal=True)
-    configFile = open(configPath, "r")
-    try:
-        config = json.load(configFile)
-    except Exception, e:
-        print("Error parsing config file:\n{}\n\nPlease contact course staff.".format(e))
-        return None
-    configFile.close()
-    return config
-
-def makeOpArray(config):
-    opArray = []
-    # Sort problem config array by problem number
-    config = sorted(config, key=lambda p: p["number"])
-    for problem in config:
-        op = Operation()
-        op.parseProblem(problem)
-        opArray.append(op)
-    return opArray
-
-def searchCfg(fileName):
-    fileList = os.listdir(CFG_DIR)
-    for f in fileList:
-        if (f.lower() == fileName.lower()):
-            return "{}/{}".format(CFG_DIR, f)
-    error("no config file found. Are you sure the hw number is correct?", True)
-
-def stripFormatting(s):
-    contents = s
-
-    # Remove formatting characters
-    contents = contents.replace(bcolors.HEADER, "")
-    contents = contents.replace(bcolors.OKBLUE, "")
-    contents = contents.replace(bcolors.OKGREEN, "")
-    contents = contents.replace(bcolors.WARNING, "")
-    contents = contents.replace(bcolors.FAIL, "")
-    contents = contents.replace(bcolors.ENDC, "")
-    contents = contents.replace(bcolors.BOLD, "")
-    contents = contents.replace(bcolors.UNDERLINE, "")
-
-    return contents
-
-def createErrLog(contents, path="."):
-    fd = open(path + "/errors.log", "w")
-    toWrite = stripFormatting(contents)
-    fd.write(toWrite)
-    fd.close()
-
-def checkStudent(studentDir, opArray):
-    personalOutput = getOutputHeader(studentDir)
-    hasAnyErrors = False
-    os.chdir(studentDir)
-    print("\tChecking compile for {}".format(studentDir))
-    for op in opArray:
-        op.clearErrors()
-        errString = op.do()
-        if (op.hasErrors):
-            hasAnyErrors = True
-            personalOutput += writeHeaderLine("Problem {}".format(op.number), True)
-            personalOutput += errString
-    if (hasAnyErrors):
-        createErrLog(personalOutput)
-
-    os.chdir("../")
-    return (hasAnyErrors, personalOutput)
-
-def writeResults(strArr):
-    path = "{}/{}_results.txt".format(RESULTS_DIR, HW_NUM)
-    if (len(strArr) < 1):
-        return
-    fd = open(path, "w")
-    toWrite = "\n\n".join(strArr)
-    toWrite = stripFormatting(toWrite)
-    fd.write(toWrite)
-    fd.close()
-    print("Errored students written to {}".format(path))
-
-def checkStudents(handinDir, studentList):
-    global HW_NUM
-    # Parse config file and do relevant operations
-    cfgPath = searchCfg("{}_cfg.json".format(HW_NUM))
-    # Take the proper (case-sensitive) hwNum
-    HW_NUM = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
-    config = parseConfig(CFG_DIR + "/" + HW_NUM + "_cfg.json")
-    if (config == None):
-        exit(255)
-    opArray = makeOpArray(config)
-    oldCwd = os.getcwd()
-    os.chdir(handinDir)
-
-    errorStudents = []
-    for student in studentList:
-        hasErrors = False
-        (hasErrors, errOut) = checkStudent(student, opArray)
-        if (hasErrors):
-            errorStudents.append(errOut)
-    os.chdir(oldCwd)
-    return errorStudents
 
 def checkTime(targetTime):
     goodHr = (time.localtime().tm_hour == targetTime.tm_hour)
@@ -457,9 +51,11 @@ def checkTime(targetTime):
 
 def main():
     args = getArgs()
-
-    global HW_NUM
-    HW_NUM = args.hwNum
+    hwNum = args.hwNum
+    dryrun = args.dryrun
+    if (dryrun):
+        bcolors.warning_msg('dryrun option is enabled. Script will not make ' +\
+                'files or change perms!\n')
     closeTime = args.time
     isScheduled = (closeTime != None)
     if (isScheduled):
@@ -469,7 +65,7 @@ def main():
             print("ERROR: time must be in the format HH:MM (24-hour time)")
             return 255
 
-    handinDir = HANDIN_DIR + "/" + HW_NUM
+    handinDir = HANDIN_DIR + "/" + hwNum
     print("Closing handin directories in " + handinDir)
     if (not os.path.exists(handinDir)):
         print("\n" + HW_NUM + " handin directory does not exist.")
@@ -492,15 +88,20 @@ def main():
                 startNow = True
             else:
                 time.sleep(30)
-        closeStudentDirs(handinDir, dirList)
+        admin.closeStudentDirs(handinDir, dirList, dryrun=dryrun)
         print("\n{}Handin directories closed.{}".format(bcolors.OKGREEN, bcolors.ENDC))
 
         sys.stdout.write("\nChecking handins for all students...\n")
         sys.stdout.flush()
-        errorStudents = checkStudents(handinDir, dirList)
+        try:
+            errorStudents = admin.checkStudents(CFG_DIR, handinDir, dirList, hwNum)
+        except admin.ConfigError as e:
+            print(e)
+            print('Fatal error encountered. Exiting...')
+            return 255
         sys.stdout.write("Done!\n")
         sys.stdout.flush()
-        writeResults(errorStudents)
+        admin.writeResults(errorStudents, hwNum, RESULTS_DIR)
         return 0
     except (KeyboardInterrupt):
         return 0
