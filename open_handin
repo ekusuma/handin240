@@ -8,8 +8,9 @@
 #
 # Edric Kusuma <ekusuma@cmu.edu>
 
-import handin240_admin as admin
-from handin240_admin import bcolors as bc
+import handin240_utils.admin as admin
+import handin240_utils.utils as utils
+from handin240_utils.utils import bcolors as bc
 import argparse
 import os
 import sys
@@ -19,7 +20,7 @@ import json
 
 # Globals useful for this script
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-ENV         = admin.get_env(SCRIPT_PATH + '/config.ini')
+ENV         = utils.get_env(SCRIPT_PATH + '/config.ini')
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
@@ -38,29 +39,28 @@ def getArgs():
 def main():
     args = getArgs()
     hwNum = args.hwNum
-    global VERBOSE
-    VERBOSE = args.isVerbose
-    global DRY
-    DRY = args.dryrun
+    verbose = args.isVerbose
+    dryrun= args.dryrun
     rosterPath = args.rosterPath
 
-    bc.warning_msg('dryrun option is enabled. Script will not make files or change perms!\n')
+    if (dryrun):
+        bc.warning_msg('dryrun option is enabled. Script will not make files or change perms!\n')
 
     try:
-        path = admin.searchCfg(hwNum, ENV['cfg_dir'])
-        admin.checkJson(path)
-    except admin.ConfigError as e:
+        path = utils.searchCfg(hwNum, ENV['cfg_dir'])
+        utils.checkJson(path)
+    except utils.ConfigError as e:
         print(e)
         exit (255)
 
     handinDir = ENV['handin_dir'] + '/' + hwNum
     print('Creating handin directories for ' + hwNum + ' in ' + handinDir)
-    if ((not DRY) and (not os.path.exists(handinDir))):
+    if ((not dryrun) and (not os.path.exists(handinDir))):
         os.mkdir(handinDir)
-    elif (VERBOSE):
+    elif (verbose):
         print('Path exists for ' + handinDir + ', skipping')
 
-    if (VERBOSE):
+    if (verbose):
         print('Using roster file in ' + rosterPath)
     try:
         rosterFile = open(rosterPath, 'r')
@@ -68,8 +68,8 @@ def main():
         print('Error: no such file in ' + rosterPath)
         print('\nHandin directories not created. Exiting...')
         return 255
-    studentIDs = admin.parseCSVField(rosterFile, 'Andrew ID')
-    admin.createStudentDirs(handinDir, studentIDs, dryrun=DRY, verbose=VERBOSE)
+    studentIDs = utils.parseCSVField(rosterFile, 'Andrew ID')
+    admin.createStudentDirs(handinDir, studentIDs, dryrun=dryrun, verbose=verbose)
     rosterFile.close()
 
     print('\nHandin directories created.')
