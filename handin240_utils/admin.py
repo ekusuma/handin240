@@ -1,4 +1,4 @@
-from handin240_utils import *
+from handin240_utils.utils import bcolors, ConfigError
 
 import subprocess as sp
 import os
