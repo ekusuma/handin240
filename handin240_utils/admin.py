@@ -105,7 +105,8 @@ def checkStudent(studentDir, opArray, hwNum):
         createErrLog(personalOutput)
     # No errors, so should remove the log file
     else:
-        os.remove('./errors.log')
+        if (os.path.exists('./errors.log')):
+            os.remove('./errors.log')
 
     os.chdir(oldDir)
     return (hasAnyErrors, personalOutput)
