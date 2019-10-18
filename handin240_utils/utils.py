@@ -8,15 +8,20 @@ import glob
 import json
 import csv
 
-# Some useful constants in the scope of this script
-ERR_NOEXIST     = 0
-ERR_NOCOMPILE   = 1
-ERR_FAILTEST    = 2
+# Return values
+HANDIN_YES      = 0
+HANDIN_NO       = 1
 
-class ConfigError(Exception):
-    def __init__(self, message):
-        self.message = "ConfigError: " + message
-        super(Exception, self).__init__(self.message)
+# Error codes
+ERR_NOCONFIG    = 100
+ERR_BADCONFIG   = 101
+ERR_OP          = 200
+ERR_NOEXIST     = 201
+ERR_NOCOMPILE   = 202
+ERR_FAILTEST    = 203
+ERR_HANDIN_DIR  = 210
+ERR_HANDIN_PERM = 211
+ERR_UNKNOWN     = 255
 
 # Colors!
 class bcolors:
@@ -57,6 +62,87 @@ class bcolors:
 
         return contents
 
+
+# We implement errors using exceptions
+class Handin240Error(Exception):
+    def __init__(self, message):
+        errMsg = self.getError(message)
+        super(Exception, self).__init__(errMsg)
+        self.errno = ERR_UNKNOWN
+
+    def getError(self, msg):
+        className = self.__class__.__name__
+        return "{}{}{}: {}".format(bcolors.FAIL, className, bcolors.ENDC, msg)
+
+class NoConfigError(Handin240Error):
+    def __init__(self):
+        msg = "no config found. Are you sure the HW number is correct?"
+        errMsg = self.getError(msg)
+        super(Handin240Error, self).__init__(errMsg)
+        self.errno = ERR_NOCONFIG
+
+class ParseConfigError(Handin240Error):
+    def __init__(self, exp):
+        msg = "Error parsing config file:\n"
+        msg += "{}\n\nPlease contact course staff.".format(exp)
+        errMsg = self.getError(msg)
+        super(Handin240Error, self).__init__(errMsg)
+        self.errno = ERR_BADCONFIG
+
+class FileError(Handin240Error):
+    def __init__(self, files):
+        if (isinstance(files, list)):
+            fileStr = ", ".join(files)
+        else:
+            fileStr = files
+        msg = "{}: files do not exist".format(fileStr)
+        errMsg = self.getError(msg)
+        super(Handin240Error, self).__init__(errMsg)
+        self.errno = ERR_NOEXIST
+
+class HandinDirError(Handin240Error):
+    def __init__(self):
+        msg = "your handin directory was not found. Are you sure "
+        msg += "you are enrolled? Please contact course staff if the "
+        msg += "problem persists."
+        errMsg = self.getError(msg)
+        super(Handin240Error, self).__init__(errMsg)
+        self.errno = ERR_HANDIN_DIR
+
+class HandinPermError(Handin240Error):
+    def __init__(self):
+        msg = "access to handin directory denied. Are you "
+        msg += "trying to submit past the deadline? If not, please "
+        msg += "contact course staff."
+        errMsg = self.getError(msg)
+        super(Handin240Error, self).__init__(errMsg)
+        self.errno = ERR_HANDIN_PERM
+
+
+def error(message):
+    """Generic error message formatter.
+
+    Args:
+        message (string): A message that describes the error.
+
+    Returns:
+        (str): Formatted error message.
+
+    """
+    return bcolors.FAIL + "ERROR: " + bcolors.ENDC + message
+
+def warning(message):
+    """Generic warning message formatter.
+
+    Args:
+        message (string): A message that describes the warning.
+
+    Returns:
+        (str): Formatted warning message.
+
+    """
+    return bcolors.WARNING + "WARNING: " + bcolors.ENDC + message
+
 def get_env(config_file):
     conf = ConfigParser.ConfigParser()
     conf.read(config_file)
@@ -84,12 +170,22 @@ def parseCSVField(csvPath, field='Andrew ID'):
     return studentList
 
 def searchCfg(hwNum, cfgDir):
+    """Case-insensitive search for a target config file in cfgDir.
+
+    Args:
+        hwNum (str): HW number of config file.
+        cfgDir (str): Directory to search config file in.
+
+    Returns:
+        (str): Path to the config file.
+
+    """
     fileName = hwNum + '_cfg.json'
     fileList = os.listdir(cfgDir)
     for f in fileList:
         if (f.lower() == fileName.lower()):
             return '{}/{}'.format(cfgDir, f)
-    raise ConfigError('no config for {}'.format(hwNum))
+    raise NoConfigError()
 
 def parseConfig(configPath):
     """Parses the config JSON file. See README for how these config files must
@@ -108,14 +204,12 @@ def parseConfig(configPath):
 
     """
     if (not os.path.exists(configPath)):
-        error("no such config file. Are you sure the hw number is correct?", fatal=True)
+        raise NoConfigError()
     configFile = open(configPath, "r")
     try:
-        config = json.load(configFile)
-        return config
+        return json.load(configFile)
     except Exception, e:
-        msg = "Error parsing config file:\n{}\n\nPlease contact course staff.".format(e)
-        raise ConfigError(msg)
+        raise ParseConfigError(e)
     finally:
         configFile.close()
 
@@ -124,11 +218,10 @@ def checkJson(jsonPath):
     try:
         json.load(jsonFile)
     except Exception as e:
-        msg = 'error with {}: \n{}'.format(jsonPath, e)
-        raise ConfigError(msg)
+        raise ParseConfigError(e)
 
 class Operation:
-    def __init__(self):
+    def __init__(self, skipCompile=False):
         self.number = None
         self.existFiles = None
         self.compileFiles = None
@@ -137,6 +230,7 @@ class Operation:
         self.hasErrors = False
         self.err = ""
         self.useWildcard = False
+        self.skipCompile = skipCompile
 
     def clearErrors(self):
         self.hasErrors = False
@@ -298,21 +392,47 @@ class Operation:
             self.checkExistence()
             if (self.hasErrors):
                 return self.err + "\n"
-        if (self.compileFiles != None):
+        if ((not self.skipCompile) and (self.compileFiles != None)):
             self.checkCompilation()
             if (self.hasErrors):
                 return self.err + "\n"
         return ""
 
-def makeOpArray(config):
+def makeOpArray(config, skipCompile=False):
+    """Create an array of Operation objects from a config dict.
+
+    Args:
+        config (dict): Dict that represents the assignment's config
+
+    Returns:
+        ([Operation]): Array of problem ops.
+
+    """
     opArray = []
     # Sort problem config array by problem number
     config = sorted(config, key=lambda p: p["number"])
     for problem in config:
-        op = Operation()
+        op = Operation(skipCompile)
         op.parseProblem(problem)
         opArray.append(op)
     return opArray
+
+def doOpArray(opArray):
+    resultString = ""
+    hasErrors = False
+    filesToSubmit = set()
+
+    for op in opArray:
+        if (op.existFiles != None):
+            filesToSubmit = filesToSubmit.union(set(op.existFiles))
+        if (op.compileFiles != None):
+            filesToSubmit = filesToSubmit.union(set(op.compileFiles))
+        errString = op.do()
+        if (op.hasErrors):
+            hasErrors = True
+            resultString += writeHeaderLine("Problem {}".format(op.number), True)
+            resultString += errString
+    return (filesToSubmit, hasErrors, resultString)
 
 def writeHeaderLine(header, filled=False):
     """Used to write a line in the header for the errors.log file.
@@ -339,6 +459,15 @@ def writeHeaderLine(header, filled=False):
     return headerLine
 
 def getOutputHeader(studentID, hwNum):
+    """Writes a formatted header that details hwNum and Andrew ID.
+
+    Args:
+        studentID (str): Andrew ID of the student.
+
+    Returns:
+        (str): Populated header.
+
+    """
     headerLine = 80 * "*" + "\n"
     outputHeader = headerLine
     outputHeader += writeHeaderLine("18240: " + hwNum)
@@ -347,6 +476,16 @@ def getOutputHeader(studentID, hwNum):
     return outputHeader
 
 def createErrLog(contents, path="."):
+    """Writes an errors.log file with the formatting characters removed.
+
+    Args:
+        contents (str): The stuff to write to the log file.
+        path (str): Path to write errors.log (by default CWD).
+
+    Returns:
+        Nothing.
+
+    """
     fd = open(path + "/errors.log", "w")
     toWrite = bcolors.stripFormatting(contents)
     fd.write(toWrite)
@@ -362,4 +501,29 @@ def writeResults(strArr, hwNum, resultsDir):
     fd.write(toWrite)
     fd.close()
     print("Errored students written to {}".format(path))
+
+def checkFs(studentID, studentDir):
+    """Checks AFS permissions for a student.
+
+    Args:
+        studentID (str): Andrew ID of the student.
+        studentDir (str): Path to the folder to check permissions for.
+
+    Returns:
+        (bool): True if student has write permissions, False otherwise (and if
+            student directory does not exist).
+
+    """
+    fsCmd = ["fs", "la", studentDir]
+    perms = sp.check_output(fsCmd).split()
+    try:
+        idIndex = perms.index(studentID)
+        selfPerms = perms[idIndex:]
+    except ValueError:
+        error("unable to figure out student permissions for handin dir. " +
+              "Please contact course staff if the problem persists.")
+        return False
+
+    # Has write permissions
+    return "rlidwk" in selfPerms[1]
 
