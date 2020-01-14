@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 # handin240_close.py
 #
 # Utility script for closing student handin directories. Will take every student

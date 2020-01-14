@@ -1,4 +1,4 @@
-import ConfigParser
+import configparser
 import subprocess as sp
 import sys
 import os
@@ -58,7 +58,7 @@ class bcolors:
         return contents
 
 def get_env(config_file):
-    conf = ConfigParser.ConfigParser()
+    conf = configparser.ConfigParser()
     conf.read(config_file)
     env = dict()
     try:
@@ -113,7 +113,7 @@ def parseConfig(configPath):
     try:
         config = json.load(configFile)
         return config
-    except Exception, e:
+    except Exception as e:
         msg = "Error parsing config file:\n{}\n\nPlease contact course staff.".format(e)
         raise ConfigError(msg)
     finally:
@@ -261,20 +261,20 @@ class Operation:
                 vloganCmd = ["vlogan", "-q", "-sverilog", "-nc"] + fileList
                 try:
                     out = sp.check_output(vloganCmd, stderr=sp.STDOUT)
-                except sp.CalledProcessError, e:
+                except sp.CalledProcessError as e:
                     self.compilationErrHandler(fileList, oldDir, e)
                     return
                 for module in self.specificModules:
                     vcsCmd = ["vcs", "-q", "-sverilog", "-nc", module]
                     try:
                         out = sp.check_output(vcsCmd, stderr=sp.STDOUT)
-                    except sp.CalledProcessError, e:
+                    except sp.CalledProcessError as e:
                         self.compilationErrHandler(fileList, oldDir, e)
             else:
                 vcsCmd = ["vcs", "-q", "-sverilog", "-nc"] + fileList
                 try:
                     out = sp.check_output(vcsCmd)
-                except sp.CalledProcessError, e:
+                except sp.CalledProcessError as e:
                     self.compilationErrHandler(fileList, oldDir, e)
             return
         except (KeyboardInterrupt):

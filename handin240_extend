@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 # handin240_extend.py
 #
 # Utility script for reopening handin directory for specific students, if
@@ -7,30 +7,21 @@
 #
 # Edric Kusuma <ekusuma@cmu.edu>
 
+import handin240_utils.admin as admin
+import handin240_utils.utils as utils
+from handin240_utils.utils import bcolors
+
 import argparse
-import ConfigParser
 import os
 import sys
 import subprocess
 
-# Colors!
-class bcolors:
-    HEADER = "\033[95m"
-    OKBLUE = "\033[94m"
-    OKGREEN = "\033[92m"
-    WARNING = "\033[33m"
-    FAIL = "\033[91m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-
 # Initialize config file
 ########################
-conf = ConfigParser.ConfigParser()
-scriptPath = os.path.dirname(os.path.realpath(__file__))
-conf.read(scriptPath + '/config.ini')
+SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+ENV         = utils.get_env(SCRIPT_PATH + '/config.ini')
 
-HANDIN_DIR  = conf.get('HANDIN', 'HANDIN_DIR')
+HANDIN_DIR  = ENV['handin_dir']
 
 # Returns a tuple of (options, args) parsed from the command line.
 def getArgs():
@@ -60,7 +51,7 @@ def setStudentPerms(studentID, path):
         subprocess.check_output(fsCmd)
         successes.append(studentID)
         return True
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
         error = bcolors.FAIL
         error += "Error granting extension for {}".format(studentID)
         error += bcolors.ENDC

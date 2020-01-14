@@ -24,7 +24,7 @@ def openStudentPerms(studentID, path, dryrun=False, verbose=False):
             print(' '.join(fsCmd))
         if (not dryrun):
             sp.check_call(fsCmd, stderr=devnull)
-    except sp.CalledProcessError, e:
+    except sp.CalledProcessError as e:
         retVal = studentID
     devnull.close()
 
@@ -71,7 +71,7 @@ def closeStudentPerms(studentID, path, dryrun=False):
         if (not dryrun):
             sp.check_call(fsCmd, stderr=devnull)
         return retVal
-    except sp.CalledProcessError, e:
+    except sp.CalledProcessError as e:
         retVal = studentID
         return retVal
     finally:

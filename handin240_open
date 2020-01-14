@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 # handin240_open.py
 #
 # Utility script to create student directories in the assignment's handin
@@ -11,6 +11,7 @@
 import handin240_utils.admin as admin
 import handin240_utils.utils as utils
 from handin240_utils.utils import bcolors as bc
+
 import argparse
 import os
 import sys
@@ -64,7 +65,7 @@ def main():
         print('Using roster file in ' + rosterPath)
     try:
         rosterFile = open(rosterPath, 'r')
-    except IOError, e:
+    except IOError as e:
         print('Error: no such file in ' + rosterPath)
         print('\nHandin directories not created. Exiting...')
         return 255
