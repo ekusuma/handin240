@@ -1,0 +1,25 @@
+[
+    {
+        "//": "This is an example of how to configure handin240 with the lab handins",
+
+        "//": "We support wildcards for file submissions. These will be grabbed",
+        "//": "from the *current directory*",
+        "files": [
+            "*.sv",
+            "*.asm",
+            "*.txt",
+            "*.md",
+            "*.png",
+            "*.sim"
+        ],
+        "//": "Somewhat hacky, but -1 marks this as a lab handin",
+        "number": -1,
+        "//": "Can set to 0 or # of style points",
+        "points": 0,
+        "drill": false,
+        "//": "Leave these null",
+        "testFiles": null,
+        "compileFiles": null,
+        "specificModules": null
+    }
+]

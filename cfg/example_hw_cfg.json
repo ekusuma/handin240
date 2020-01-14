@@ -1,0 +1,43 @@
+[
+    {
+    "//": "Name must be HWNUM_cfg.json !!!!!",
+
+    "//": "This is an example JSON that all assignments MUST follow in order",
+    "//": "for handin240 to work.",
+
+    "//": "The JSON has the format of an array of objects",
+    "//": "This is an object that describes a problem",
+
+    "//": "number           Number of HW problem",
+    "//": "drill            True if this is a drill problem",
+    "//": "points           How many points this problem is worth",
+    "//": "files            What files the STUDENT must supply",
+    "//": "compileFiles     What files that MUST be included for compilation.",
+    "//": "                 Note that this includes any files we provide to them!",
+    "//": "                 Also remember that not all problems need to compile",
+    "//": "testFiles        Testbench files for student-run testing (feature not",
+    "//": "                 yet supported)",
+    "//": "specificModules  Name of module(s) that we want to compile Note that",
+    "//": "                 this field is an array of strings. You may ask to",
+    "//": "                 compile more than one module for a problem by",
+    "//": "                 adding more strings to this array",
+
+        "number": 1,
+        "drill": true,
+        "points": 0,
+        "files": null,
+        "compileFiles": null,
+        "testFiles": null,
+        "specificModules": null
+    },
+    {
+        "number": 2,
+        "drill": false,
+        "points": 4,
+        "files": ["hw1prob2.sv"],
+        "compileFiles": ["hw1prob2.sv", "hw1secretblock.sv"],
+        "testFiles": null,
+        "specificModules": null
+    }
+]
+
