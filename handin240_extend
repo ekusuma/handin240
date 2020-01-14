@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# extend_handin.py
+# handin240_extend.py
 #
 # Utility script for reopening handin directory for specific students, if
 # extensions are to be given for whatever reason. Once the extension time has

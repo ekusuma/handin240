@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# close_handin.py
+# handin240_close.py
 #
 # Utility script for closing student handin directories. Will take every student
 # directory in the handin dir, and remove write permissions for that student.
