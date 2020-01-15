@@ -8,4 +8,4 @@
 # Usage:
 #   - Just run the executable ./init_handin
 
-pip install --user reportlab
+pip3 install --user reportlab

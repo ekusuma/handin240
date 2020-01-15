@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 # handin240.py
 #
 # Main handin script for students to use to hand in their homework files. Needs
@@ -119,8 +119,8 @@ def handinPrecheck(hasErrors, personalOutput):
         return True
 
     attemptHandin = True
-    print("\n" + utils.warning("errors detected! See errors.log for details.\n"))
     utils.createErrLog(personalOutput)
+    print("\n" + utils.warning("errors detected! See errors.log for details.\n"))
     if (not FORCED):
         attemptHandin = False
         print("If you wish to submit an incomplete homework, then run the " +
@@ -129,7 +129,7 @@ def handinPrecheck(hasErrors, personalOutput):
         print(utils.warning("you are attempting to submit homework with errors! " +
               "You will NOT receive any credit for files with errors.\n"))
         formatStr = "If this is intentional on your part, type '{}' and press Enter: "
-        agreement = raw_input(formatStr.format(HW_NUM))
+        agreement = input(formatStr.format(HW_NUM))
         if (agreement != HW_NUM):
             attemptHandin = False
     return attemptHandin
@@ -415,6 +415,10 @@ def main():
         HW_NUM = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
         config = utils.parseConfig(CFG_DIR + "/" + HW_NUM + "_cfg.json")
         opArray = utils.makeOpArray(config, SKIP_COMP)
+        if (SKIP_COMP):
+            skip_warning = "you are choosing to skip compilation checks. Note that "
+            skip_warning += "code that doesn't compile WILL get ZERO credit."
+            print(utils.warning(skip_warning))
         (filesToSubmit, hasAnyErrors, errString) = utils.doOpArray(opArray)
         personalOutput = utils.getOutputHeader(selfID, HW_NUM)
         personalOutput += errString
@@ -431,10 +435,6 @@ def main():
     handinCreated = bc.OKGREEN + "Handin complete." + bc.ENDC
     handinNotCreated = bc.FAIL + "Handin not complete." + bc.ENDC
 
-    if (SKIP_COMP):
-        skip_warning = "you are choosing to skip compilation checks. Note that "
-        skip_warning += "code that doesn't compile WILL get ZERO credit."
-        print(utils.warning(skip_warning))
     # Check if handin had any errors
     attemptHandin = handinPrecheck(hasAnyErrors, personalOutput)
 
@@ -442,7 +442,7 @@ def main():
         try:
             doHandin(selfID, filesToSubmit)
             if (DRY):
-                print("\n'-n' flag specified. Handin was not done")
+                print("\nDryrun '-n' flag specified. Handin was not done")
                 print(handinNotCreated)
                 status = utils.HANDIN_NO
             else:
