@@ -10,9 +10,20 @@ This branch contains scripts pertinent for staff workflow:
 3. Grant extensions for specific students for a given homework
 4. Create homework configuration files
 
-Written in Python, intended for ver. 2.7.5.
+Written in Python, ported to Python3.
 
 ## Usage
+Note that the `handin240` utility module has been changed to be a submodule, so
+when cloning remember initialize it:
+```bash
+git submodule update --init --recursive
+```
+This only has to be run once after cloning the repo. To pull changes for the
+submodule in the future, you may run
+```bash
+git submodule update --recursive
+```
+
 ### Handin directory utilities
 #### Handin creation
 **Requires a roster of students, in CSV.** The CSV must have an `Andrew ID`
