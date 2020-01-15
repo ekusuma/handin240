@@ -42,6 +42,7 @@ scriptPath  = os.path.dirname(os.path.realpath(__file__))
 ENV         = utils.get_env(scriptPath + '/config.ini')
 
 HANDIN_DIR  = ENV['handin_dir']
+REFFILE_DIR = ENV['ref_dir']
 CFG_DIR     = ENV['cfg_dir']
 FONT_DIR    = ENV['font_dir']
 
@@ -425,7 +426,8 @@ def main():
         # Take the proper (case-sensitive) HW_NUM
         HW_NUM = cfgPath[cfgPath.rindex("/")+1:cfgPath.index("_cfg.json")]
         config = utils.parseConfig(CFG_DIR + "/" + HW_NUM + "_cfg.json")
-        opArray = utils.makeOpArray(config, SKIP_COMP)
+        opArray = utils.makeOpArray(config, refFilePath=REFFILE_DIR,
+                skipCompile=SKIP_COMP)
         if (SKIP_COMP):
             skip_warning = "you are choosing to skip compilation checks. Note that "
             skip_warning += "code that doesn't compile WILL get ZERO credit."
