@@ -76,6 +76,11 @@ example, to submit hw1 you would type into your terminal
 $ handin240 hw1
 ```
 
+You may find it helpful to see what else the script can do:
+```bash
+$ handin240 -h
+```
+
 The handin script will do the following:
 1. Checks to see that the file exists.
 2. If necessary, checks to see that the file compiles.
