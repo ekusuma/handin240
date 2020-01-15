@@ -3,7 +3,7 @@ A handin utility tool for 18240 assignments. Meant to streamline student
 workflow with respect to code submissions with the intent of removing Autolab
 from the flow entirely, as well as make the lives of the (best) TAs easier.
 
-Written in Python, intended for ver. 2.7.5.
+Written in Python, updated to Python3
 
 If you have any problems/questions *please read this in its entirety first*. If
 you still have problems/questions, then put up a post on Piazza or contact Edric
