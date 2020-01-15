@@ -4,7 +4,7 @@ workflow with respect to code submissions with the intent of removing Autolab
 from the flow entirely, as well as make the lives of the (best) TAs easier. Also
 includes some utility scripts that would be useful for the new workflow.
 
-Written in Python, intended for ver. 2.7.5.
+Written in Python, ported to Python3
 
 ## Repository Organization
 The repository is organized into the following branches:
@@ -32,7 +32,7 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 ### Overall Todos
 - ~~Write different READMEs for both staff and student branches~~
 - ~~Get basic setup done in AFS~~
-- Refactor scripts into object-oriented, for ease of use
+- ~~Refactor scripts into object-oriented, for ease of use~~
 - Define TATB directory and usage
 - ~~Convert Python scripts into executables~~
 - ~~Edit `.cfg` file spec to match pretty-print code script~~
@@ -45,39 +45,42 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 
 ### Student Todos
 - Stop being lazy and actually document code
-- Implement a "dry run" feature that just does error checks
+- ~~Implement a "dry run" feature that just does error checks~~
 - Implement automatic tester
-- Add timestamp for each execution of handin (for stat tracking)
+- ~~Add timestamp for each execution of handin (for stat tracking)~~
 - ~~Find a way to supress stdout/stderr~~
 - ~~Error handling when necessary files do not exist~~
 - ~~Check if script works if files are within STAFF directory~~ Nope, we'll have
   to deploy student files in the public course space
 - ~~Implement compilation success checker~~
+- Add ability to check module headers
 
 ## Installation
-1. Ensure [env.py](env.py) is defined (things like course folder, handin, staff
-   folder, etc), and push to `master`.
+1. Ensure [config.ini](config.ini) is defined (things like course folder,
+   handin, staff folder, etc), and push to `master`.
 2. `cd` to the folder where the **student** scripts should be deployed
 3. Clone the student repo
 
 ```bash
+$ cd $STUDENT_BIN_DIR
 $ git clone git@git.ece.cmu.edu:ekusuma/240-handin.git -b prod/student
 ```
-4. Checkout the `env.py` file from `master` to student repo
+4. Checkout the `config.ini` file from `master` to student repo
 
 ```bash
-$ git checkout master env.py
+$ git checkout master config.ini
 ```
 5. `cd` to the folder where the **staff** scripts should be deployed
 6. Clone the staff repo
 
 ```bash
+$ cd $STAFF_BIN_DIR
 $ git clone git@git.ece.cmu.edu:ekusuma/240-handin.git -b prod/staff
 ```
-7. Checkout the `env.py` file from `master` to staff repo
+7. Checkout the `config.ini` file from `master` to staff repo
 
 ```bash
-$ git checkout master env.py
+$ git checkout master config.ini
 ```
 
 ## Specification
