@@ -23,6 +23,7 @@ import sys
 import shutil
 import argparse
 import glob
+from datetime import datetime
 
 import reportlab
 
@@ -106,6 +107,16 @@ def doHandin(studentID, filesToSubmit):
         if (not os.path.exists(path)):
             continue
         shutil.copy(path, studentDir)
+
+    timelogFile = open('{}/.handin_log'.format(studentDir), 'a')
+    try:
+        timeMsg = 'Handin performed at: '
+        timeMsg += datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        timelogFile.write(timeMsg + '\n')
+    except Exception:
+        timelogFile.close()
+        raise
+    timelogFile.close()
 
 def printHandinComplete():
     formatStr = "\nCode printout created as {}_code.pdf. Please check "
