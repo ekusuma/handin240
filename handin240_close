@@ -39,6 +39,9 @@ def getArgs():
     parser.add_argument("hwNum", help="number of assignment to close")
     parser.add_argument("-t", "--time", action="store", dest="time",
             help="scheduled close time in HH:MM (24-time)")
+    parser.add_argument("-s", "--skip-check", action="store_true", dest="skip",
+                        default=False,
+                        help="skips student compilation checks")
     parser.add_argument('-n', '--dryrun', action='store_true', dest='dryrun',
                         default=False,
                         help='prevents script from creating/modifying files')
@@ -53,6 +56,7 @@ def main():
     args = getArgs()
     hwNum = args.hwNum
     dryrun = args.dryrun
+    skip = args.skip
     if (dryrun):
         bcolors.warning_msg('dryrun option is enabled. Script will not make ' +\
                 'files or change perms!\n')
@@ -91,17 +95,18 @@ def main():
         admin.closeStudentDirs(handinDir, dirList, dryrun=dryrun)
         print("\n{}Handin directories closed.{}".format(bcolors.OKGREEN, bcolors.ENDC))
 
-        sys.stdout.write("\nChecking handins for all students...\n")
-        sys.stdout.flush()
-        try:
-            errorStudents = admin.checkStudents(CFG_DIR, handinDir, dirList, hwNum)
-        except admin.ConfigError as e:
-            print(e)
-            print('Fatal error encountered. Exiting...')
-            return 255
-        sys.stdout.write("Done!\n")
-        sys.stdout.flush()
-        admin.writeResults(errorStudents, hwNum, RESULTS_DIR)
+        if (not skip):
+            sys.stdout.write("\nChecking handins for all students...\n")
+            sys.stdout.flush()
+            try:
+                errorStudents = admin.checkStudents(CFG_DIR, handinDir, dirList, hwNum)
+            except admin.ConfigError as e:
+                print(e)
+                print('Fatal error encountered. Exiting...')
+                return 255
+            sys.stdout.write("Done!\n")
+            sys.stdout.flush()
+            admin.writeResults(errorStudents, hwNum, RESULTS_DIR)
         return 0
     except (KeyboardInterrupt):
         return 0
