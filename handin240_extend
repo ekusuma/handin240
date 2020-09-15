@@ -33,38 +33,18 @@ def getArgs():
                       default=False, help="verbose script output")
     return parser.parse_args()
 
-# Sets AFS permissions such that the student may write to the directory
-# Admins have usual admin permissions, and other students may not access
-def setStudentPerms(studentID, path):
-    successes = []
-    fsCmd = ["fs", "seta", "-dir", path, "-clear", "-acl"]
-    peoplePerms = [
-        "system:web-srv-users", "rl",
-        "ee240:ta", "all",
-        "ee240:staff", "all",
-        "ee240", "all",
-        "system:administrators", "all",
-        studentID, "write"
-    ]
-    fsCmd += peoplePerms
-    try:
-        subprocess.check_output(fsCmd)
-        successes.append(studentID)
-        return True
-    except subprocess.CalledProcessError as e:
-        error = bcolors.FAIL
-        error += "Error granting extension for {}".format(studentID)
-        error += bcolors.ENDC
-        print(error)
-        return False
-
 def openStudentDirs(basePath, ids):
     successes = []
     for student in ids:
         path = basePath + "/" + student.lower()
-        success = setStudentPerms(student, path)
+        success = (admin.openStudentPerms(student, path) == None)
         if (success):
             successes.append(student)
+        else:
+            error = bcolors.FAIL
+            error += "Error granting extension for {}".format(studentID)
+            error += bcolors.ENDC
+            print(error)
 
     return successes
 
