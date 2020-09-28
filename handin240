@@ -19,6 +19,7 @@ import handin240_utils.utils as utils
 from handin240_utils.utils import bcolors as bc
 
 import os
+import codecs
 import sys
 import shutil
 import argparse
@@ -157,7 +158,9 @@ def handinPrecheck(hasErrors, personalOutput):
 @contextmanager
 def opened_with_error(filename, mode='r'):
     try:
-        f = open(filename, mode)
+        # [09/28/20]    Need to ignore encoding errors in case students submit
+        #               non-unicode code...
+        f = codecs.open(filename, mode, encoding='utf-8', errors='ignore')
     except IOError as err:
         yield None, err
     else:
