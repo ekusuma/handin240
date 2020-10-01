@@ -42,7 +42,7 @@ def openStudentDirs(basePath, ids):
             successes.append(student)
         else:
             error = bcolors.FAIL
-            error += "Error granting extension for {}".format(studentID)
+            error += "Error granting extension for {}".format(student)
             error += bcolors.ENDC
             print(error)
 
