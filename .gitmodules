@@ -1,6 +1,6 @@
 [submodule "handin240_utils"]
 	path = handin240_utils
-	url = git@github.com:edgykuma/handin240_utils.git
+	url = git@github.com:CMU-18240/handin240_utils.git
 [submodule "svinterface"]
 	path = svinterface
-	url = git@github.com:edgykuma/svinterface.git
+	url = git@github.com:CMU-18240/svinterface.git
