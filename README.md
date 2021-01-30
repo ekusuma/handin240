@@ -38,22 +38,22 @@ For usage of scripts, *please see the relevant branches' READMEs*.
 - ~~Edit `.cfg` file spec to match pretty-print code script~~
 
 ### Staff Todos
-- Add functionality to edit existing cfg files
+- ~~Add functionality to edit existing cfg files~~
 - ~~Find a way to supress stdout~~
 - ~~Change `close_handin` to also run compile checks on student code~~
 - ~~Create script to modify AFS permissions for each student directory~~
 
 ### Student Todos
-- Stop being lazy and actually document code
+- ~~Stop being lazy and actually document code~~
 - ~~Implement a "dry run" feature that just does error checks~~
 - Implement automatic tester
 - ~~Add timestamp for each execution of handin (for stat tracking)~~
 - ~~Find a way to supress stdout/stderr~~
 - ~~Error handling when necessary files do not exist~~
-- ~~Check if script works if files are within STAFF directory~~ Nope, we'll have
-  to deploy student files in the public course space
+- ~~Check if script works if files are within STAFF directory~~ *Nope, we'll have
+  to deploy student files in the public course space*
 - ~~Implement compilation success checker~~
-- Add ability to check module headers
+- Add ability to check module headers (*currently broken*)
 
 ## Installation
 1. Ensure [config.ini](config.ini) is defined (things like course folder,
