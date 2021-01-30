@@ -4,7 +4,7 @@ workflow with respect to code submissions with the intent of removing Autolab
 from the flow entirely, as well as make the lives of the (best) TAs easier. Also
 includes some utility scripts that would be useful for the new workflow.
 
-Written in Python, ported to Python3
+Written in Python, ported to Python3.
 
 ## Repository Organization
 The repository is organized into the following branches:
