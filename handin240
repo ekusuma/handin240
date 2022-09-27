@@ -292,8 +292,8 @@ class HW_Code_Maker:
             self.draw_text_object(to_print, 'Header')
             # Removed line to preserve anonymity for grading
             # Uncomment if you want to print out student ID as well
-            #to_print = '{}'.format(self.student)
-            #self.draw_text_object(to_print, 'Header')
+            to_print = 'AndrewID: {}'.format(self.student)
+            self.draw_text_object(to_print, 'Header')
         else:
             self.canvas.showPage()
             filename_length = len(a_filename)
