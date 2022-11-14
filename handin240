@@ -27,6 +27,7 @@ import glob
 from datetime import datetime
 
 import reportlab
+import re
 
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -203,6 +204,8 @@ class HW_Code_Maker:
         self.hw_number = kwargs['number']
         self.problems  = kwargs['problems']
         self.student   = kwargs['student']
+        self.skipComp  = kwargs['skipComp']
+        self.errList   = kwargs['errList']
         self.line_number = 1
         self.init_xy()
         self.canvas = None
@@ -224,11 +227,19 @@ class HW_Code_Maker:
         pdfmetrics.registerFont(sFont)
         self.canvas.setFont('SourceCodePro', 10)
 
+        count = 0
+
         for problem in self.problems:
+            error = 0
+            if ((self.errList[count] != None) or self.skipComp):
+                error = 1
+                self.report_problem_errors(problem, self.errList, count)
             if problem['files']:
                 for filename in problem['files']:
                     self.page_number = 1
-                    self.print_file(filename, problem)
+                    self.print_file(filename, problem, error)
+            count += 1
+
         self.canvas.save()
 
     def draw_text_object(self, a_string, color_style=None):
@@ -251,13 +262,90 @@ class HW_Code_Maker:
             text_object.setFillColor(colors.green)
         elif color_style == 'Warning':
             text_object.setFillColor(colors.red)
+        elif color_style == 'Report':
+            text_object.setFillColor(colors.blue)
         else:
             text_object.setFillColor(colors.dimgrey)
         text_object.textLine(text=a_string)
         self.canvas.drawText(text_object)
         self.y += HW_Code_Maker.LINE_SPACING
 
-    def draw_header(self, a_filename, prob_dict):
+    def report_problem_errors(self, prob_dict, errList, count):
+        """ If there are errors for the problem, we print all errors on the
+            first page
+
+            Header will contain problem name and andrewID
+            The rest of the page will contain the compilation errors from 
+            terminal
+        """
+        self.init_xy()
+        prob_number = prob_dict['number']
+        prob_drill  = prob_dict['drill']
+        prob_points = prob_dict['points']
+        if (prob_number < 0):   # To be used for lab code
+            to_print = 'Lab Code [{} points]'.format(prob_points)
+        else:
+            to_print = 'Problem {}: [{} points]'.format(prob_number, prob_points)
+        if prob_drill:
+            to_print = to_print + ' Drill problem'
+        if (self.skipComp):
+            # Blue for skipped compilation
+            self.draw_text_object(to_print, 'Report')
+        else:
+            # Red for error
+            self.draw_text_object(to_print, 'Warning')
+        to_print = 'AndrewID: {}'.format(self.student)
+        self.draw_text_object(to_print, 'Header')
+
+        self.y += HW_Code_Maker.LINE_SPACING # include a blank line
+
+        if (self.skipComp):
+            # If compilation was skipped, report so
+            to_print = 'Note: Compilation for this submission was skipped'
+            self.draw_text_object(to_print, color_style='None')
+        else:
+            # Else, we know there are errors
+            # Read error line by line
+            errLines = errList[count].splitlines()
+            
+            to_print = 'Compilation Errors:'
+            self.draw_text_object(to_print, color_style='Warning')
+            self.y += HW_Code_Maker.LINE_SPACING # include a blank line
+
+            for line in errLines:
+                if self.y > HW_Code_Maker.BOTTOM_OF_PAGE:
+                    #reset page if page is full
+                    self.init_xy()
+                    self.canvas.showPage()
+                    if (prob_number < 0):   # To be used for lab code
+                        to_print = 'Lab Code [{} points]'.format(prob_points)
+                    else:
+                        to_print = 'Problem {}: [{} points]'.format(prob_number, prob_points)
+                    if prob_drill:
+                        to_print = to_print + ' Drill problem'
+                    if (self.skipComp):
+                        # Blue for skipped compilation
+                        self.draw_text_object(to_print, 'Report')
+                    else:
+                        # Red for error
+                        self.draw_text_object(to_print, 'Warning')
+                    self.y += HW_Code_Maker.LINE_SPACING # include a blank line
+
+                #purge ansi color codes from terminal output
+                ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+                line = ansi_escape.sub('', line)
+
+                #search if this line references file directory
+                if "/afs/" in line:
+                    # we anonymize file directory
+                    line = "  \".../" + line.rsplit('/', 1)[1]
+
+                to_print = line
+                self.draw_text_object(to_print, color_style='None')
+
+        self.canvas.showPage()
+
+    def draw_header(self, a_filename, prob_dict, error):
         """ Draw the header at the top of each page.
 
         The header is one or two lines at the top of each page in the PDF.
@@ -287,7 +375,12 @@ class HW_Code_Maker:
                 to_print = 'Problem {}: [{} points]'.format(prob_number, prob_points)
             if prob_drill:
                 to_print = to_print + ' Drill problem'
-            self.draw_text_object(to_print, 'Header')
+            if (self.skipComp):
+                self.draw_text_object(to_print, 'Report')
+            elif (error):
+                self.draw_text_object(to_print, 'Warning')
+            else:
+                self.draw_text_object(to_print, 'Header')
             to_print = 'Filename: {}'.format(a_filename)
             self.draw_text_object(to_print, 'Header')
             # Removed line to preserve anonymity for grading
@@ -300,12 +393,17 @@ class HW_Code_Maker:
             middle_length = 84 - 12 - filename_length - 1
             format_string = 'Filename: {{}} {{:>{}}} {{}}'.format(middle_length)
             to_print = format_string.format(a_filename, 'Page #:', self.page_number)
-            self.draw_text_object(to_print, 'Header')
+            if (self.skipComp):
+                self.draw_text_object(to_print, 'Report')
+            elif (error):
+                self.draw_text_object(to_print, 'Warning')
+            else:
+                self.draw_text_object(to_print, 'Header')
         self.y += HW_Code_Maker.LINE_SPACING # include a blank line
         self.page_number += 1
 
 
-    def print_file(self, a_filename, prob_dict):
+    def print_file(self, a_filename, prob_dict, error):
         """ Print a single file into the PDF on one or more pages.
 
         Each file is 'pretty-printed' in a fixed-width font, with line numbers
@@ -347,7 +445,7 @@ class HW_Code_Maker:
                 should be a None (i.e. a NoneType)
         """
         self.line_number = 1
-        self.draw_header(a_filename, prob_dict)
+        self.draw_header(a_filename, prob_dict, error)
 
         with opened_with_error(a_filename) as (f_in, err):
             if err:
@@ -356,7 +454,7 @@ class HW_Code_Maker:
             else:
                 for line in f_in:
                     if self.y > HW_Code_Maker.BOTTOM_OF_PAGE:
-                        self.draw_header(a_filename, prob_dict)
+                        self.draw_header(a_filename, prob_dict, error)
                     contains_tabs = False
                     color_style = 'None'
                     if '\t' in line:
@@ -379,9 +477,10 @@ class HW_Code_Maker:
                                ' (each tab replaced by 2 spaces in this print)',
                                color_style)
                     self.line_number += 1
+
         self.canvas.showPage()
 
-def makePDF(student, problemDictList):
+def makePDF(student, problemDictList, skipComp, errList):
     cfgPath = CFG_DIR + "/" + HW_NUM + "_cfg.json"
     # TODO: make this more graceful
     for prob in problemDictList:
@@ -402,7 +501,7 @@ def makePDF(student, problemDictList):
         prob["files"] = sorted(list(tempFiles))
 
     hw_dict = {'number' : HW_NUM, 'problems' : problemDictList,
-               'student' : student}
+               'student' : student, 'skipComp' : skipComp, 'errList' : errList}
 
     maker = HW_Code_Maker(**hw_dict)
     maker.make_code()
@@ -435,7 +534,7 @@ def main():
             skip_warning = "you are choosing to skip compilation checks. Note that "
             skip_warning += "code that doesn't compile WILL get ZERO credit."
             print(utils.warning(skip_warning))
-        (filesToSubmit, hasAnyErrors, errString) = utils.doOpArray(opArray)
+        (filesToSubmit, hasAnyErrors, errString, errList) = utils.doOpArray(opArray)
         personalOutput = utils.getOutputHeader(selfID, HW_NUM)
         personalOutput += errString
     except (KeyboardInterrupt, SystemExit):
@@ -465,7 +564,7 @@ def main():
                 print("\n" + handinCreated)
                 status = utils.HANDIN_YES
             # Create output PDF
-            makePDF(selfID, config)
+            makePDF(selfID, config, SKIP_COMP, errList)
             printHandinComplete()
             return status
         except (KeyboardInterrupt, SystemExit):
