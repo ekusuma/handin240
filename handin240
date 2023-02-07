@@ -25,9 +25,11 @@ import shutil
 import argparse
 import glob
 from datetime import datetime
+import traceback
 
 import reportlab
 import re
+import json
 
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -35,6 +37,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 import reportlab.rl_config
+
+from pygments import highlight
+from pygments.formatter import Formatter
+from pygments.lexers import get_lexer_for_filename, TextLexer
 
 from contextlib import contextmanager
 
@@ -134,7 +140,7 @@ def handinPrecheck(hasErrors, personalOutput):
 
     attemptHandin = True
     utils.createErrLog(personalOutput)
-    print("\n" + utils.warning("errors detected! See errors.log for details.\n"))
+    print("\n" + utils.warning("errors detected! Errors written to the file: errors.log.\n"))
     if (not FORCED):
         attemptHandin = False
         print("If you wish to submit an incomplete homework, then run the " +
@@ -169,6 +175,27 @@ def opened_with_error(filename, mode='r'):
             yield f, None
         finally:
             f.close
+
+class ReportlabSyntaxHighlightingFormatter(Formatter):
+    """A simple formatter for pygments that takes in the
+    style representation, only extracts the color, and returns
+    it as a json (because formatters can only return strings,
+    so that we can use it in the reportlab code printing flow"""
+    def __init__(self, **options):
+        Formatter.__init__(self, **options)
+
+    def format(self, tokensource, outfile):
+        output = []
+        for ttype, val in tokensource:
+            while ttype not in self.style.styles:
+                ttype = ttype.parent
+            style = self.style.style_for_token(ttype)
+            if style['color']:
+                output.append({"val": val, "color": style['color']})
+            else:
+                output.append({"val": val, "color": ''})
+        outfile.write(json.dumps(output))
+
 
 class HW_Code_Maker:
     """ Make the HWX_code.pdf file for turnin on Gradescope.
@@ -246,7 +273,7 @@ class HW_Code_Maker:
         """ Draw a string onto the PDF page at the current position.
 
         Arguments:
-        a_string : which will be printed
+        a_string : which will be printed, either a str or a list of str | {"val": str, "color": str}
         color_style : one of 'None', 'Header', 'Warning'
                       Indicates the string should be black, green or red.
 
@@ -255,18 +282,42 @@ class HW_Code_Maker:
         Note: The y attribute is updated such that the next string to be
               printed will be on a following line.
         """
+        # no syntax highlighting or highlighting does not match the string
+        # or its a warning or something
         text_object = self.canvas.beginText()
         text_object.setTextOrigin(self.x, self.y)
-        text_object.setFont('SourceCodePro', 10)
-        if color_style == 'Header':
-            text_object.setFillColor(colors.green)
-        elif color_style == 'Warning':
-            text_object.setFillColor(colors.red)
-        elif color_style == 'Report':
-            text_object.setFillColor(colors.blue)
+        merged_line = "" # just raw text
+        line_highlighted = [] # list of dictionaries with all colors
+        if isinstance(a_string, str):
+            merged_line = a_string.rstrip()
+            line_highlighted = [{"val": merged_line, "color": ''}]
+        elif isinstance(a_string, list):
+            merged_line = ""
+            for item in a_string:
+                if isinstance(item, str):
+                    merged_line += item
+                    line_highlighted.append({"val": item, "color": ''})
+                elif isinstance(item, dict):
+                    merged_line += item["val"]
+                    line_highlighted.append(item)
+                else:
+                    raise Exception("Invalid type in a_string: {}".format(type(item)))
         else:
-            text_object.setFillColor(colors.dimgrey)
-        text_object.textLine(text=a_string)
+            raise Exception("Invalid type in a_string: {}".format(type(a_string)))
+        for line_snippet in line_highlighted:
+            text_object.setFont('SourceCodePro', 10)
+            if color_style == 'Header':
+                text_object.setFillColor(colors.green)
+            elif color_style == 'Warning':
+                text_object.setFillColor(colors.red)
+            elif color_style == 'Report':
+                text_object.setFillColor(colors.blue)
+            else:
+                if line_snippet["color"] == '':
+                    text_object.setFillColor(colors.dimgrey)
+                else:
+                    text_object.setFillColor(colors.HexColor("#" + line_snippet["color"]))
+            text_object.textOut(text=line_snippet["val"].replace('\n', '').replace('\r', '').replace('\t', '  '))
         self.canvas.drawText(text_object)
         self.y += HW_Code_Maker.LINE_SPACING
 
@@ -275,7 +326,7 @@ class HW_Code_Maker:
             first page
 
             Header will contain problem name and andrewID
-            The rest of the page will contain the compilation errors from 
+            The rest of the page will contain the compilation errors from
             terminal
         """
         self.init_xy()
@@ -307,7 +358,7 @@ class HW_Code_Maker:
             # Else, we know there are errors
             # Read error line by line
             errLines = errList[count].splitlines()
-            
+
             to_print = 'Compilation Errors:'
             self.draw_text_object(to_print, color_style='Warning')
             self.y += HW_Code_Maker.LINE_SPACING # include a blank line
@@ -403,6 +454,26 @@ class HW_Code_Maker:
         self.page_number += 1
 
 
+    def _split_highlighted_tokens(self, tokens):
+        """Split a list of syntax highlighted tokens into a
+        list of lists, where each list is a line of tokens."""
+        cur_line = []
+        for token in tokens:
+            if "\n" in token["val"]:
+                splits = token["val"].split("\n")
+                for split in splits[:-1]:
+                    if split:
+                        cur_line.append({"val": split, "color": token["color"]})
+                    yield cur_line
+                    cur_line = []
+                if splits[-1]:
+                    cur_line.append({"val": splits[-1], "color": token["color"]})
+            else:
+                cur_line.append(token)
+        if len(cur_line) > 0:
+            yield cur_line
+
+
     def print_file(self, a_filename, prob_dict, error):
         """ Print a single file into the PDF on one or more pages.
 
@@ -447,29 +518,41 @@ class HW_Code_Maker:
         self.line_number = 1
         self.draw_header(a_filename, prob_dict, error)
 
+        try:
+            lexer = get_lexer_for_filename(a_filename, stripnl=False)
+        except:
+            lexer = TextLexer(stripnl=False)
+
+
         with opened_with_error(a_filename) as (f_in, err):
             if err:
                 line = 'File {} was not found'.format(a_filename)
                 self.draw_text_object(line, color_style='Warning')
             else:
-                for line in f_in:
+                try:
+                    syntax_highlighted = highlight(f_in.read(), lexer, ReportlabSyntaxHighlightingFormatter(style='xcode'))
+                    line_highlighted = json.loads(syntax_highlighted)
+                except:
+                    line_highlighted = [{"val": f_in.read(), "color": ''}]
+                for line in self._split_highlighted_tokens(line_highlighted):
+                    joined_line = ''.join([token['val'] for token in line])
                     if self.y > HW_Code_Maker.BOTTOM_OF_PAGE:
                         self.draw_header(a_filename, prob_dict, error)
                     contains_tabs = False
                     color_style = 'None'
-                    if '\t' in line:
+                    if '\t' in joined_line:
                         contains_tabs = True
-                        line = line.replace('\t', '  ')
+                        # We replace tabs in the draw_output function
                         color_style = 'Warning'
-                    line = line.rstrip()
-                    line_length = len(line)
+                    # line = line.rstrip()
+                    line_length = len(joined_line)
                     if line_length > 80:
-                        to_print = '{:3d} {}...'.format(self.line_number, line[:77]) #truncates to 80 characters.  Ironic comment
-                        self.draw_text_object(to_print, color_style='Warning')
+                        to_print = '{:3d} {}...'.format(self.line_number, joined_line[:77]) #truncates to 80 characters.  Ironic comment
+                        self.draw_text_object(to_print, 'Warning')
                         to_print = 'Line length of {} (max is 80)'.format(line_length)
-                        self.draw_text_object(to_print, color_style='Warning')
+                        self.draw_text_object(to_print, 'Warning')
                     else:
-                        to_print = '{:3d} {}'.format(self.line_number, line)
+                        to_print = ['{:3d} '.format(self.line_number)] + line
                         self.draw_text_object(to_print, color_style)
 
                     if contains_tabs:
@@ -544,6 +627,7 @@ def main():
         return e.errno
     except Exception as e:
         print("Encountered unknown error: {}".format(e))
+        traceback.print_exc()
         return utils.ERR_UNKNOWN
 
     # Result strings WITH COLORS \o/
@@ -575,6 +659,7 @@ def main():
             return utils.HANDIN_NO
         except Exception as e:
             print("Encountered unknown error: {}".format(e))
+            traceback.print_exc()
             return utils.ERR_UNKNOWN
     else:
         print("\n" + handinNotCreated)
