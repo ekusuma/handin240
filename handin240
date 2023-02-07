@@ -50,7 +50,7 @@ try:
     from pygments.lexers import get_lexer_for_filename, TextLexer
 except:
     print("ERROR:")
-    print("Please run init_handin240 to install updated packages")
+    print("Please run init_handin240 to install update packages")
     exit(0)
 
 
