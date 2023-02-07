@@ -27,7 +27,13 @@ import glob
 from datetime import datetime
 import traceback
 
-import reportlab
+try:
+    import reportlab
+except:
+    print("ERROR:")
+    print("Please read the directions on the wiki for setting up handin240")
+    exit(0)
+
 import re
 import json
 
@@ -38,9 +44,15 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 import reportlab.rl_config
 
-from pygments import highlight
-from pygments.formatter import Formatter
-from pygments.lexers import get_lexer_for_filename, TextLexer
+try:
+    from pygments import highlight
+    from pygments.formatter import Formatter
+    from pygments.lexers import get_lexer_for_filename, TextLexer
+except:
+    print("ERROR:")
+    print("Please run init_handin240 to install updated packages")
+    exit(0)
+
 
 from contextlib import contextmanager
 
