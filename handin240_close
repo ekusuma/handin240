@@ -100,6 +100,7 @@ def main():
             sys.stdout.flush()
             try:
                 errorStudents = admin.checkStudents(CFG_DIR, handinDir, dirList, hwNum)
+                gptStudents = admin.checkStudentGPT(handinDir, dirList)
             except admin.ConfigError as e:
                 print(e)
                 print('Fatal error encountered. Exiting...')
@@ -107,6 +108,7 @@ def main():
             sys.stdout.write("Done!\n")
             sys.stdout.flush()
             admin.writeResults(errorStudents, hwNum, RESULTS_DIR)
+            admin.writeGPT(gptStudents, hwNum, RESULTS_DIR)
         return 0
     except (KeyboardInterrupt):
         return 0
