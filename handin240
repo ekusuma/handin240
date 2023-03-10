@@ -139,6 +139,39 @@ def doHandin(studentID, filesToSubmit):
         raise
     timelogFile.close()
 
+def doGPT(studentID):
+    """Perform the handin tasks. Prints relevant errors on failures.
+
+    Args:
+        studentID (str): Student's Andrew ID.
+        filesToSubmit (set): List of all files to be copied to the handin dir.
+
+    Returns:
+        (bool): True on flagged submission, False on clean submission
+
+    """
+    # TODO: copy files into a hidden subdirectory for later viewing
+
+    # Don't perform checks if not handing in
+    if (DRY):
+        return False
+
+    studentDir = HANDIN_DIR + "/" + HW_NUM + "/"
+    # The call to doHandin already checked for student folder existence
+    oldDir = os.getcwd()
+    os.chdir(studentDir)
+
+    GPTuse = False
+    try:
+        # Discard output string for student-facing script
+        GPTuse, errStr = utils.checkFilesGPT(studentID)
+    except:
+        os.chdir(oldDir)
+        print(utils.error("Parse check failure, please contact course staff"))
+    os.chdir(oldDir)
+
+    return GPTuse
+
 def printHandinComplete():
     formatStr = "\nCode printout created as {}_code.pdf. Please check "
     formatStr += "that there are no errors in the PDF."
@@ -254,7 +287,7 @@ class HW_Code_Maker:
         self.x = HW_Code_Maker.LEFT_MARGIN
         self.y = HW_Code_Maker.TOP_MARGIN
 
-    def make_code(self):
+    def make_code(self, GPTuse=False):
         """ Make the PDF file with all homework code files printed. """
         filename = '{}_code.pdf'.format(self.hw_number)
         self.canvas = canvas.Canvas(filename,
@@ -276,7 +309,7 @@ class HW_Code_Maker:
             if problem['files']:
                 for filename in problem['files']:
                     self.page_number = 1
-                    self.print_file(filename, problem, error)
+                    self.print_file(filename, problem, error, GPTuse)
             count += 1
 
         self.canvas.save()
@@ -408,7 +441,7 @@ class HW_Code_Maker:
 
         self.canvas.showPage()
 
-    def draw_header(self, a_filename, prob_dict, error):
+    def draw_header(self, a_filename, prob_dict, error, GPTuse=False):
         """ Draw the header at the top of each page.
 
         The header is one or two lines at the top of each page in the PDF.
@@ -445,7 +478,14 @@ class HW_Code_Maker:
             else:
                 self.draw_text_object(to_print, 'Header')
             to_print = 'Filename: {}'.format(a_filename)
-            self.draw_text_object(to_print, 'Header')
+
+            # Print filename with blue text for GPT-flagged submissions
+            # TODO: do filename highlighting on a per-problem basis
+            if (GPTuse):
+                self.draw_text_object(to_print, 'Report')
+            else:
+                self.draw_text_object(to_print, 'Header')
+
             # Removed line to preserve anonymity for grading
             # Uncomment if you want to print out student ID as well
             to_print = 'AndrewID: {}'.format(self.student)
@@ -485,8 +525,8 @@ class HW_Code_Maker:
         if len(cur_line) > 0:
             yield cur_line
 
-
-    def print_file(self, a_filename, prob_dict, error):
+    # TODO: pass in GPTuse as an argument
+    def print_file(self, a_filename, prob_dict, error, GPTuse=False):
         """ Print a single file into the PDF on one or more pages.
 
         Each file is 'pretty-printed' in a fixed-width font, with line numbers
@@ -528,7 +568,7 @@ class HW_Code_Maker:
                 should be a None (i.e. a NoneType)
         """
         self.line_number = 1
-        self.draw_header(a_filename, prob_dict, error)
+        self.draw_header(a_filename, prob_dict, error, GPTuse)
 
         try:
             lexer = get_lexer_for_filename(a_filename, stripnl=False)
@@ -575,7 +615,8 @@ class HW_Code_Maker:
 
         self.canvas.showPage()
 
-def makePDF(student, problemDictList, skipComp, errList):
+# TODO: Pass in GPTuse as an argument
+def makePDF(student, problemDictList, skipComp, errList, GPTuse=False):
     cfgPath = CFG_DIR + "/" + HW_NUM + "_cfg.json"
     # TODO: make this more graceful
     for prob in problemDictList:
@@ -599,7 +640,7 @@ def makePDF(student, problemDictList, skipComp, errList):
                'student' : student, 'skipComp' : skipComp, 'errList' : errList}
 
     maker = HW_Code_Maker(**hw_dict)
-    maker.make_code()
+    maker.make_code(GPTuse)
 
 def main():
     args = getArgs()
@@ -659,16 +700,23 @@ def main():
             else:
                 print("\n" + handinCreated)
                 status = utils.HANDIN_YES
-            # Create output PDF
-            makePDF(selfID, config, SKIP_COMP, errList)
+
+            # Create output PDF and parse for GPT usage
+            GPTuse = doGPT(selfID)
+            makePDF(selfID, config, SKIP_COMP, errList, GPTuse)
+            if (GPTuse):
+                print(bc.FAIL + "This submission has been flagged" + bc.ENDC)
             printHandinComplete()
             return status
+
         except (KeyboardInterrupt, SystemExit):
             raise
+
         except (utils.Handin240Error) as e:
             print(e)
             print("\n" + handinNotCreated)
             return utils.HANDIN_NO
+
         except Exception as e:
             print("Encountered unknown error: {}".format(e))
             traceback.print_exc()
