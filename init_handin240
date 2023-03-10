@@ -9,3 +9,4 @@
 #   - Just run the executable ./init_handin
 
 pip3 install --user reportlab
+pip3 install --user pygments # Required for syntax highlighting
