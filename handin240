@@ -167,7 +167,7 @@ def doGPT(studentID):
         GPTuse, errStr = utils.checkFilesGPT(studentID)
     except:
         os.chdir(oldDir)
-        print(utils.error("Parse check failure, please contact course staff"))
+        print(utils.error("Parse check failure, this warning is ignorable"))
     os.chdir(oldDir)
 
     return GPTuse
