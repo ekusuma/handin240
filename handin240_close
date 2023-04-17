@@ -100,11 +100,14 @@ def main():
             sys.stdout.flush()
             try:
                 errorStudents = admin.checkStudents(CFG_DIR, handinDir, dirList, hwNum)
-                gptStudents = admin.checkStudentGPT(handinDir, dirList)
             except admin.ConfigError as e:
                 print(e)
                 print('Fatal error encountered. Exiting...')
                 return 255
+            
+            print("Checking GPT for all students...\n")
+            gptStudents = admin.checkStudentGPT(handinDir, dirList)
+
             sys.stdout.write("Done!\n")
             sys.stdout.flush()
             admin.writeResults(errorStudents, hwNum, RESULTS_DIR)
