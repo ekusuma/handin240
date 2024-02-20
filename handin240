@@ -296,7 +296,9 @@ class HW_Code_Maker:
         # Need to add to the searchpath, so we can use a font that we specify
         reportlab.rl_config.TTFSearchPath.append(FONT_DIR)
         sFont = TTFont('SourceCodePro', 'SourceCodePro-Regular.ttf')
+        sFontIt = TTFont('SourceCodePro-BoldIt', 'SourceCodePro-BoldIt.ttf')
         pdfmetrics.registerFont(sFont)
+        pdfmetrics.registerFont(sFontIt)
         self.canvas.setFont('SourceCodePro', 10)
 
         count = 0
@@ -354,6 +356,7 @@ class HW_Code_Maker:
             if color_style == 'Header':
                 text_object.setFillColor(colors.green)
             elif color_style == 'Warning':
+                text_object.setFont('SourceCodePro-BoldIt', 10)
                 text_object.setFillColor(colors.red)
             elif color_style == 'Report':
                 text_object.setFillColor(colors.blue)
@@ -601,14 +604,14 @@ class HW_Code_Maker:
                     if line_length > 80:
                         to_print = '{:3d} {}...'.format(self.line_number, joined_line[:77]) #truncates to 80 characters.  Ironic comment
                         self.draw_text_object(to_print, 'Warning')
-                        to_print = 'Line length of {} (max is 80)'.format(line_length)
+                        to_print = 'ERROR: Line length of {} (max is 80)'.format(line_length) # Another ironic comment
                         self.draw_text_object(to_print, 'Warning')
                     else:
                         to_print = ['{:3d} '.format(self.line_number)] + line
                         self.draw_text_object(to_print, color_style)
 
                     if contains_tabs:
-                        self.draw_text_object('Line contains tabs' +
+                        self.draw_text_object('ERROR: Line contains tabs' +
                                ' (each tab replaced by 2 spaces in this print)',
                                color_style)
                     self.line_number += 1
