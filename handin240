@@ -97,7 +97,7 @@ def getArgs():
     parser.add_argument("-s", "--skip", action="store_true",
                       help="hand in files without compiling")
     parser.add_argument("-n", "--dryrun", action="store_true", dest="dryrun",
-                      help="run script without handing in")
+                      help="generate pdf file without handing in code - DO NOT USE THIS")
     return parser.parse_args()
 
 def doHandin(studentID, filesToSubmit):
@@ -708,7 +708,7 @@ def main():
             GPTuse = doGPT(selfID)
             makePDF(selfID, config, SKIP_COMP, errList, GPTuse)
             if (GPTuse):
-                print(bc.FAIL + "This submission has been flagged" + bc.ENDC)
+                print(bc.FAIL + "This submission has been flagged. Ignore this message if you fully understand your code." + bc.ENDC)
             printHandinComplete()
             return status
 
